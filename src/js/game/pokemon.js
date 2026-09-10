@@ -1,0 +1,23 @@
+export function createPokemon(data) {
+    const hpStat = data.stats.find(stat => stat.stat.name === "hp");
+    const attackStat = data.stats.find(stat => stat.stat.name === "attack");
+    const defenseStat = data.stats.find(stat => stat.stat.name === "defense");
+    const speedStat = data.stats.find(stat => stat.stat.name === "speed");
+
+    const maxHp = hpStat.stat.base_stat;
+
+    return {
+        id: data.id,
+        name: data.name,
+        sprite: data.sprites.front_default,
+        types: data.types.map(type => type.type.name),
+        maxHp,
+        currentHp: maxHp,
+        attack: attackStat.base_stat,
+        defense: defenseStat.base_stat,
+        speed: speedStat.base_stat,
+        fainted: false,
+        item: null,
+        mathcupWins: 0
+    };
+}
