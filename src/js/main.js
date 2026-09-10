@@ -2,7 +2,7 @@ import { getUniqueRandomPokemon } from "./api/pokeapi.js";
 import { renderPokemonCards } from "./ui/pokemon-cards.js";
 
 const TEAM_SIZE = 6;
-let pokemonOffer = [];
+let pokemonOffer = await getUniqueRandomPokemon(12, 2);
 let selectedPokemon = [];
 
 function updateSelectionUI() {
@@ -35,7 +35,7 @@ function togglePokemonSelection(pokemon) {
 
 async function init() {
     try {
-        pokemonOffer = await getUniqueRandomPokemon(12);
+        pokemonOffer = await getUniqueRandomPokemon(12, 2);
         renderPokemonCards(pokemonOffer, selectedPokemon, togglePokemonSelection);
         updateSelectionUI();
     } catch (error) {

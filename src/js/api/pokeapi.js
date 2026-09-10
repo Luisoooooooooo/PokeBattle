@@ -19,12 +19,33 @@ export async function getRandomPokemon() {
     return getPokemon(randomId);
 }
 
-export async function getUniqueRandomPokemon(count) {
-    const pokemonMap = new Map();
+function canAddPokemonByTypeLimit(pokemon, typeCounts, maxPerType) {
+    return pokemon.types.every(type => {
+        return (typeCounts[type] ?? 0) < maxPerType;
+    });
+}
 
+function addPokemonTypesToCount(pokemon, typeCounts) {
+    pokemon.types.forEach(type => {
+        typeCounts[type] = (typeCounts[type] ?? 0) + 1;
+    });
+}
+
+export async function getUniqueRandomPokemon(count, maxPerType = null) {
+    const pokemonMap = new Map();
+    const typeCounts = {};
     while (pokemonMap.size < count) {
         const pokemon = await getRandomPokemon();
+        if (pokemonMap.has(pokemon.id)) {
+            continue;
+        }
+        if (maxPerType !== null && !canAddPokemonByTypeLimit(pokemon, typeCounts, maxPerType)) {
+            continue;
+        }
         pokemonMap.set(pokemon.id, pokemon);
+        if (maxPerType !== null) {
+            addPokemonTypesToCount(pokemon, typeCounts);
+        }
     }
 
     return [...pokemonMap.values()];
