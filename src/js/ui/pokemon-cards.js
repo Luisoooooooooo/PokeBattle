@@ -4,9 +4,12 @@ function capitalize(text) {
     return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function createPokemonCard(pokemon) {
+function createPokemonCard(pokemon, selectedPokemon, onToggle) {
     const card = document.createElement("article");
     card.classList.add("pokemon-card");
+    if (selectedPokemon.some(selected => selected.id === pokemon.id)) {
+        card.classList.add("selected");
+    }
     card.innerHTML = `
         <img src="${pokemon.sprite}" alt="${capitalize(pokemon.name)}">
         <h2>${capitalize(pokemon.name)}</h2>
@@ -20,6 +23,9 @@ function createPokemonCard(pokemon) {
             <span>VEL ${pokemon.speed}</span>
         </div>
     `;
+    card.addEventListener("click", () => {
+        onToggle(pokemon);
+    })
 
     return card;
 }
@@ -36,12 +42,12 @@ function renderTypes(types) {
     }).join("");
 }
 
-export function renderPokemonCards(pokemonList) {
+export function renderPokemonCards(pokemonList, selectedPokemon, onToggle) {
     const pokemonGrid = document.querySelector("#pokemonGrid");
     pokemonGrid.innerHTML = "";
 
     pokemonList.forEach(pokemon => {
-        const card = createPokemonCard(pokemon);
+        const card = createPokemonCard(pokemon, selectedPokemon, onToggle);
         pokemonGrid.appendChild(card);
     });
 }
