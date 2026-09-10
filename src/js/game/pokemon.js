@@ -4,7 +4,7 @@ export function createPokemon(data) {
     const defenseStat = data.stats.find(stat => stat.stat.name === "defense");
     const speedStat = data.stats.find(stat => stat.stat.name === "speed");
 
-    const maxHp = hpStat.stat.base_stat;
+    const maxHp = hpStat.base_stat;
 
     return {
         id: data.id,
@@ -18,6 +18,6 @@ export function createPokemon(data) {
         speed: speedStat.base_stat,
         fainted: false,
         item: null,
-        mathcupWins: 0
+        matchupWins: 0
     };
 }
