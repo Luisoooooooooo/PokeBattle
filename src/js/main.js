@@ -1,10 +1,8 @@
-import { getPokemon } from "./api/pokeapi.js";
-import { createPokemon } from "./game/pokemon.js";
+import { getUniqueRandomPokemon } from "./api/pokeapi.js";
 
 async function init() {
     try {
-        const pokemonData = await getPokemon(25);
-        const pokemon = createPokemon(pokemonData);
+        const pokemon = await getUniqueRandomPokemon(12);
         console.log(pokemon);
     } catch (error) {
         console.error(error);
