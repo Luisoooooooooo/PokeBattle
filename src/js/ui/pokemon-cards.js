@@ -1,3 +1,5 @@
+import { typeMeta, TYPE_ICON_BASE } from "../data/types.js";
+
 function capitalize(text) {
     return text.charAt(0).toUpperCase() + text.slice(1);
 }
@@ -9,9 +11,7 @@ function createPokemonCard(pokemon) {
         <img src="${pokemon.sprite}" alt="${capitalize(pokemon.name)}">
         <h2>${capitalize(pokemon.name)}</h2>
         <div class="pokemon-types">
-            ${pokemon.types
-                .map(type => `<span class="type">${capitalize(type)}</span>`)
-                .join("")}
+            ${renderTypes(pokemon.types)}
         </div>
         <div class="pokemon-stats">
             <span>HP ${pokemon.maxHp}</span>
@@ -22,6 +22,18 @@ function createPokemonCard(pokemon) {
     `;
 
     return card;
+}
+
+function renderTypes(types) {
+    return types.map(type => {
+        const meta = typeMeta[type] ?? {color: "#666"};
+        return `
+            <span class="type" style="--type-color:${meta.color}">
+                <img class="type-icon" src="${TYPE_ICON_BASE}/${type}.svg" alt="" aria-hidden="true">
+                ${capitalize(type)}
+            </span>
+        `;
+    }).join("");
 }
 
 export function renderPokemonCards(pokemonList) {
