@@ -1,9 +1,12 @@
-import { getUniqueRandomPokemon } from "./api/pokeapi.js";
+import { getUniqueRandomPokemon, getRandomItemOffer } from "./api/pokeapi.js";
 import { renderPokemonCards } from "./ui/pokemon-cards.js";
+import { renderItemTeam, renderItemOffer } from "./ui/item-selection.js";
 
 const TEAM_SIZE = 6;
-let pokemonOffer = await getUniqueRandomPokemon(12, 2);
+let pokemonOffer = [];
 let selectedPokemon = [];
+let itemOffer = [];
+let selectedItemPokemonId = null;
 
 function updateSelectionUI() {
     const selectionCount = document.querySelector("#selectionCount");
@@ -16,7 +19,6 @@ function togglePokemonSelection(pokemon) {
     const isSelected = selectedPokemon.some(
         selected => selected.id === pokemon.id
     );
-
     if (isSelected) {
         selectedPokemon = selectedPokemon.filter(
             selected => selected.id !== pokemon.id
@@ -33,23 +35,34 @@ function togglePokemonSelection(pokemon) {
     updateSelectionUI();
 }
 
-function confirmTeam() {
-    if(selectedPokemon.length !== TEAM_SIZE) {
+async function confirmTeam() {
+    if (selectedPokemon.length !== TEAM_SIZE) {
         return;
     }
-    document.querySelector(".selection").innerHTML = `
-            <div class="selection-header">
-                <p>EQUIPO CONFIRMADO</p>
-                <h1>Tu equipo está listo</h1>
-                <p>Has seleccionado tus 6 Pokémon.</p>
-            </div>
-            <div id="pokemonGrid" class="pokemon-grid"></div>
-        `;
-        renderPokemonCards(
-            selectedPokemon,
-            selectedPokemon,
-            () => {}
-        );
+    itemOffer = await getRandomItemOffer();
+    selectedItemPokemonId = selectedPokemon[0]?.id ?? null;
+    document.querySelector(".selection").classList.add("hidden");
+    document.querySelector("#itemScreen").classList.remove("hidden");
+    renderItemSelection();
+}
+
+function renderItemSelection() {
+    renderItemTeam(selectedPokemon, selectedItemPokemonId, selectItemPokemon);
+    renderItemOffer(itemOffer, selectedPokemon, equipItem);
+}
+
+function selectItemPokemon(pokemon) {
+    selectedItemPokemonId = pokemon.id;
+    renderItemSelection();
+}
+
+function equipItem(item) {
+    const pokemon = selectedPokemon.find(pokemon => pokemon.id === selectedItemPokemonId);
+    if (!pokemon) {
+        return;
+    }
+    pokemon.item = item;
+    renderItemSelection();
 }
 
 async function init() {
@@ -58,7 +71,7 @@ async function init() {
         renderPokemonCards(pokemonOffer, selectedPokemon, togglePokemonSelection);
         updateSelectionUI();
         const continueBtn = document.querySelector("#continueBtn");
-        continueBtn.addEventListener("click", confirmTeam)
+        continueBtn.addEventListener("click", confirmTeam);
     } catch (error) {
         console.error(error);
     }

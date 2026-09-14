@@ -133,6 +133,87 @@ main {
   box-shadow: 0 0 0 2px #111;
 }
 
+.hidden {
+  display: none;
+}
+
+.item-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.item-team-grid,
+.item-offer-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.item-offer-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.item-team-card,
+.item-card {
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.item-team-card {
+  cursor: pointer;
+}
+
+.item-team-card.selected {
+  border-color: #111;
+  box-shadow: 0 0 0 2px #111;
+}
+
+.item-card {
+  cursor: pointer;
+}
+
+.item-card.used {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.item-card img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.item-team-card img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+}
+
+.remove-item-btn {
+  margin-top: 8px;
+  padding: 6px 10px;
+
+  border: 1px solid #ddd;
+  border-radius: 8px;
+
+  background: #fff;
+
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.remove-item-btn:hover {
+  background: #f5f5f5;
+}
+
+.item-team-card .pokemon-types {
+  justify-content: flex-start;
+  margin: 6px 0;
+}
+
 @media (max-width: 800px) {
   .pokemon-grid {
     grid-template-columns: repeat(2, 1fr);
