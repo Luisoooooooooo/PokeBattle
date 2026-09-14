@@ -19,7 +19,9 @@ function createPokemonCard(pokemon, selectedPokemon, onToggle) {
         <div class="pokemon-stats">
             <span>HP ${pokemon.maxHp}</span>
             <span>ATK ${pokemon.attack}</span>
+            <span>ATKSp ${pokemon.specialAttack}</span>
             <span>DEF ${pokemon.defense}</span>
+            <span>DEFSp ${pokemon.specialDefense}</span>
             <span>VEL ${pokemon.speed}</span>
         </div>
     `;
