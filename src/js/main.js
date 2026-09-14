@@ -72,9 +72,28 @@ async function init() {
         updateSelectionUI();
         const continueBtn = document.querySelector("#continueBtn");
         continueBtn.addEventListener("click", confirmTeam);
+        const startRunBtn = document.querySelector("#startRunBtn");
+        startRunBtn.addEventListener("click", startRun);
     } catch (error) {
         console.error(error);
     }
+}
+
+function startRun() {
+    document.querySelector("#itemScreen").classList.add("hidden");
+    document.querySelector("#battleScreen").classList.remove("hidden");
+    const battleTeamGrid = document.querySelector("#battleTeamGrid");
+    battleTeamGrid.innerHTML = "";
+    selectedPokemon.forEach(pokemon => {
+        const card = document.createElement("article");
+        card.classList.add("pokemon-card");
+        card.innerHTML = `
+            <img src="${pokemon.sprite}" alt="${pokemon.name}">
+            <h2>${pokemon.name}</h2>
+            <p>${pokemon.item ? pokemon.item.name : "Sin objeto"}</p>
+        `;
+        battleTeamGrid.appendChild(card);
+    });
 }
 
 init();
