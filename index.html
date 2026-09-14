@@ -21,6 +21,32 @@
                 </div>
                 <div id="pokemonGrid" class="pokebmon-grid"></div>
             </section>
+            <section id="itemScreen" class="item-screen hidden">
+                <div class="selection-header">
+                    <p>EQUIPA A TU EQUIPO</p>
+                    <h1>Asigna objetos</h1>
+                    <p>Selecciona un Pokémon y después un objeto</p>
+                </div>
+                <div class="itemlayout">
+                    <div>
+                        <h2>Tu equipo</h2>
+                        <div id="itemTeamGrid" class="item-team-grid"></div>
+                    </div>
+                    <div>
+                        <h2>Objetos disponibles</h2>
+                        <div id="itemOfferGrid" class="item-offer-grid"></div>
+                    </div>
+                </div>
+                <button id="startRunBtn">Empezar la run</button>
+            </section>
+            <section id="battleScreen" class="battle-screen hidden">
+                <div class="selection-header">
+                    <p>TUN EN CURSO</p>
+                    <h1>Combate preparado</h1>
+                    <p>Tu equipo está listo para empwzar.</p>
+                </div>
+                <div id="battleTeamGrid" class="pokemon grid"></div>
+            </section>
         </main>
         <script type="module" src="./src/js/main.js"></script>
     </body>

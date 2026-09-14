@@ -30,7 +30,7 @@ function createPokemonCard(pokemon, selectedPokemon, onToggle) {
     return card;
 }
 
-function renderTypes(types) {
+export function renderTypes(types) {
     return types.map(type => {
         const meta = typeMeta[type] ?? {color: "#666"};
         return `
