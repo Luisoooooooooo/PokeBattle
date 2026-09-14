@@ -33,11 +33,32 @@ function togglePokemonSelection(pokemon) {
     updateSelectionUI();
 }
 
+function confirmTeam() {
+    if(selectedPokemon.length !== TEAM_SIZE) {
+        return;
+    }
+    document.querySelector(".selection").innerHTML = `
+            <div class="selection-header">
+                <p>EQUIPO CONFIRMADO</p>
+                <h1>Tu equipo está listo</h1>
+                <p>Has seleccionado tus 6 Pokémon.</p>
+            </div>
+            <div id="pokemonGrid" class="pokemon-grid"></div>
+        `;
+        renderPokemonCards(
+            selectedPokemon,
+            selectedPokemon,
+            () => {}
+        );
+}
+
 async function init() {
     try {
         pokemonOffer = await getUniqueRandomPokemon(12, 2);
         renderPokemonCards(pokemonOffer, selectedPokemon, togglePokemonSelection);
         updateSelectionUI();
+        const continueBtn = document.querySelector("#continueBtn");
+        continueBtn.addEventListener("click", confirmTeam)
     } catch (error) {
         console.error(error);
     }
