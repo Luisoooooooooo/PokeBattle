@@ -40,12 +40,48 @@
                 <button id="startRunBtn">Empezar la run</button>
             </section>
             <section id="battleScreen" class="battle-screen hidden">
-                <div class="selection-header">
-                    <p>TUN EN CURSO</p>
-                    <h1>Combate preparado</h1>
-                    <p>Tu equipo está listo para empwzar.</p>
+                <div class="battle-header">
+                    <div>
+                        <p>RUN EN CURSO</p>
+                        <h1 id="trainerName">Entrenador</h1>
+                    </div>
+                    <div id="enemyPokeballs" class="enemy-pokeballs"></div>
                 </div>
-                <div id="battleTeamGrid" class="pokemon grid"></div>
+                <div class="battle-layout">
+                    <div class="battle-main">
+                        <div class="battle-field">
+                            <div class="battle-pokemon player-pokemon">
+                                <p>TU POKÉMON</p>
+                                <img id="playerBattleSprite" src="" alt="">
+                                <h2 id="playerBattleName">Pokémon</h2>
+                                <div class="hp-bar">
+                                    <div id="playerHpBar" class="hp-bar-fill"></div>
+                                </div>
+                                <p id="playerHpText">0 / 0 PS</p>
+                            </div>
+                            <div class="battle-pokemon enemy-pokemon">
+                                <p>RIVAL</p>
+                                <img id="enemyBattleSprite" src="" alt="">
+                                <h2 id="enemyBattleName">Pokémon</h2>
+                                <div class="hp-bar">
+                                    <div id="enemyHpBar" class="hp-bar-fill"></div>
+                                </div>
+                                <p id="enemyHpText">0 / 0 PS</p>
+                            </div>
+                        </div>
+                        <button id="resolveMatchupBtn">Resolver enfrentamiento</button>
+                        <div>
+                            <h2>Tu equipo</h2>
+                            <div id="battleTeamGrid" class="pokemon-grid"></div>
+                        </div>
+                    </div>
+                    <aside class="log-panel">
+                        <h2>Registro de combate</h2>
+                        <div id="battleLog" class="battle-log">
+                            <p>El combate está preparado.</p>
+                        </div>
+                    </aside>
+                </div>
             </section>
         </main>
         <script type="module" src="./src/js/main.js"></script>

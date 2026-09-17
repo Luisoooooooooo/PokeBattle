@@ -174,9 +174,13 @@ export function executeAttack(attacker, defender) {
     }
     defender.fainted = defender.currentHp === 0;
     const damageDealt = defenderHpBeforeAttack - defender.currentHp;
+    const defenderHpAfterAttack = defender.currentHp;
     const rockyHelmetDamage = damageDealt > 0 ? applyRockyHelmet(attacker, defender) : 0;
+    const attackerHpAfterRockyHelmet = attacker.currentHp;
     const sitrusHealing = applySitrusBerry(defender);
+    const defenderHpAfterSitrus = defender.currentHp;
     const lifeOrbRecoil = attackResult.damage > 0 ? applyLifeOrbRecoil(attacker) : 0;
+    const attackerHpAfterLifeOrb = attacker.currentHp;
     return {
         attacker,
         defender,
@@ -184,12 +188,15 @@ export function executeAttack(attacker, defender) {
         type: attackResult.type,
         multiplier: attackResult.multiplier,
         defenderHpBeforeAttack,
-        defenderCurrentHp: defender.currentHp,
+        defenderCurrentHp: defenderHpAfterAttack,
         defenderFainted: defender.fainted,
         focusBandActivated,
         rockyHelmetDamage,
+        attackerHpAfterRockyHelmet,
         sitrusHealing,
+        defenderHpAfterSitrus,
         lifeOrbRecoil,
+        attackerHpAfterLifeOrb,
         damageDealt
     };
 }
@@ -206,12 +213,16 @@ export function executeTurn(pokemonA, pokemonB) {
     }
     const pokemonALeftoversHealing = applyLeftovers(pokemonA);
     const pokemonBLeftoversHealing = applyLeftovers(pokemonB);
+    const pokemonAHpAfterLeftovers = pokemonA.currentHp;
+    const pokemonBHpAfterLeftovers = pokemonB.currentHp;
     return {
         firstAttacker,
         attacks,
-        leftovers: { 
+        leftovers: {
             pokemonA: pokemonALeftoversHealing,
-            pokemonB: pokemonBLeftoversHealing
+            pokemonB: pokemonBLeftoversHealing,
+            pokemonAHpAfterLeftovers,
+            pokemonBHpAfterLeftovers
         },
         pokemonAFainted: pokemonA.fainted,
         pokemonBFainted: pokemonB.fainted
