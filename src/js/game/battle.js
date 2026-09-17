@@ -152,7 +152,7 @@ export function applyLeftovers(pokemon) {
     return pokemon.currentHp - previousHp;
 }
 
-function applyMaxRevive(pokemon) {
+export function applyMaxRevive(pokemon) {
     if (pokemon.item?.effect !== "max-revive" || !pokemon.fainted) {
         return false;
     }
@@ -177,7 +177,6 @@ export function executeAttack(attacker, defender) {
     const rockyHelmetDamage = damageDealt > 0 ? applyRockyHelmet(attacker, defender) : 0;
     const sitrusHealing = applySitrusBerry(defender);
     const lifeOrbRecoil = attackResult.damage > 0 ? applyLifeOrbRecoil(attacker) : 0;
-    const maxReviveActivated = applyMaxRevive(defender);
     return {
         attacker,
         defender,
@@ -191,8 +190,62 @@ export function executeAttack(attacker, defender) {
         rockyHelmetDamage,
         sitrusHealing,
         lifeOrbRecoil,
-        maxReviveActivated,
         damageDealt
+    };
+}
+
+export function executeTurn(pokemonA, pokemonB) {
+    const firstAttacker = getFirstAttacker(pokemonA, pokemonB);
+    const secondAttacker = firstAttacker === pokemonA ? pokemonB : pokemonA;
+    const attacks = [];
+    const firstAttackResult = executeAttack(firstAttacker, secondAttacker);
+    attacks.push(firstAttackResult);
+    if (!secondAttacker.fainted && !firstAttacker.fainted) {
+        const secondAttackResult = executeAttack(secondAttacker, firstAttacker);
+        attacks.push(secondAttackResult);
+    }
+    const pokemonALeftoversHealing = applyLeftovers(pokemonA);
+    const pokemonBLeftoversHealing = applyLeftovers(pokemonB);
+    return {
+        firstAttacker,
+        attacks,
+        leftovers: { 
+            pokemonA: pokemonALeftoversHealing,
+            pokemonB: pokemonBLeftoversHealing
+        },
+        pokemonAFainted: pokemonA.fainted,
+        pokemonBFainted: pokemonB.fainted
+    };
+}
+
+export function resolveMatchup(pokemonA, pokemonB) {
+    const turns = [];
+    while (!pokemonA.fainted && !pokemonB.fainted) {
+        const turnResult = executeTurn(pokemonA, pokemonB);
+        turns.push(turnResult);
+    }
+    let winner = null;
+    let loser = null;
+    if (pokemonA.fainted && !pokemonB.fainted) {
+        winner = pokemonB;
+        loser = pokemonA;
+    } else if (pokemonB.fainted && !pokemonA.fainted) {
+        winner = pokemonA;
+        loser = pokemonB;
+    }
+    if (winner) {
+        winner.matchupWins++;
+    }
+    const pokemonAMaxReviveActivated = pokemonA.fainted ? applyMaxRevive(pokemonA) : false;
+    const pokemonBMaxReviveActivated = pokemonB.fainted ? applyMaxRevive(pokemonB) : false;
+    return {
+        winner,
+        loser,
+        turns,
+        maxRevive: {
+            pokemonA: pokemonAMaxReviveActivated,
+            pokemonB: pokemonBMaxReviveActivated
+        }
     };
 }
 
