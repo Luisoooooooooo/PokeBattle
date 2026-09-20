@@ -16,7 +16,7 @@ let activePokemon = null;
 let playerPokemonNeedsEntry = true;
 let currentTrainer = 1;
 let runTrainers = [];
-
+let lastRunResult = null;
 
 function updateSelectionUI() {
     const selectionCount = document.querySelector("#selectionCount");
@@ -26,13 +26,9 @@ function updateSelectionUI() {
 }
 
 function togglePokemonSelection(pokemon) {
-    const isSelected = selectedPokemon.some(
-        selected => selected.id === pokemon.id
-    );
+    const isSelected = selectedPokemon.some(selected => selected.id === pokemon.id);
     if (isSelected) {
-        selectedPokemon = selectedPokemon.filter(
-            selected => selected.id !== pokemon.id
-        );
+        selectedPokemon = selectedPokemon.filter(selected => selected.id !== pokemon.id);
     } else {
         if (selectedPokemon.length >= TEAM_SIZE) {
             return;
@@ -88,6 +84,10 @@ async function init() {
         continueTrainerBtn.addEventListener("click", startNextTrainer);
         const resolveMatchupBtn = document.querySelector("#resolveMatchupBtn");
         resolveMatchupBtn.addEventListener("click", handleResolveMatchup);
+        const newRunBtn = document.querySelector("#newRunBtn");
+        newRunBtn.addEventListener("click", startNewRun);
+        const downloadResultBtn = document.querySelector("#downloadResultBtn");
+        downloadResultBtn.addEventListener("click", downloadResultCard);
     } catch (error) {
         console.error(error);
     }
@@ -133,19 +133,29 @@ function getEffectivenessMessage(multiplier) {
     return null;
 }
 
-function showNextEnemyPokemon() {
-    const currentEnemyIndex = enemyTeam.findIndex(pokemon => pokemon.id === activeEnemyPokemon.id);
-    const nextEnemyPokemon = enemyTeam[currentEnemyIndex + 1];
-    if (!nextEnemyPokemon) {
-        return false;
-    }
-    activeEnemyPokemon = nextEnemyPokemon;
-    updateBattlePokemonUI(activeEnemyPokemon, "enemy");
+function updateEnemyPokeballs() {
     const enemyPokeballs = document.querySelectorAll(".enemy-pokeball");
-    if (enemyPokeballs[currentEnemyIndex]) {
-        enemyPokeballs[currentEnemyIndex].classList.add("defeated");
+    enemyTeam.forEach((pokemon, index) => {
+        if (!enemyPokeballs[index]) {
+            return;
+        }
+        enemyPokeballs[index].classList.toggle("defeated", pokemon.fainted);
+    });
+}
+
+function showNextEnemyPokemon() {
+    const currentEnemyIndex = enemyTeam.indexOf(activeEnemyPokemon);
+    for (let offset = 1; offset <= enemyTeam.length; offset++) {
+        const nextIndex = (currentEnemyIndex + offset) % enemyTeam.length;
+        const nextEnemyPokemon = enemyTeam[nextIndex];
+        if (!nextEnemyPokemon.fainted) {
+            activeEnemyPokemon = nextEnemyPokemon;
+            updateBattlePokemonUI(activeEnemyPokemon, "enemy");
+            updateEnemyPokeballs();
+            return true;
+        }
     }
-    return true;
+    return false;
 }
 
 function hasLivingPlayerPokemon() {
@@ -158,30 +168,22 @@ function hasLivingEnemyPokemon() {
 
 async function startNextTrainer() {
     document.querySelector("#trainerDefeatedScreen").classList.add("hidden");
-
     currentTrainer++;
     updateTrainerUI();
-
     enemyTeam = await getUniqueRandomPokemon(6, 2);
     activeEnemyPokemon = enemyTeam[0];
-
     const enemyPokeballs = document.querySelector("#enemyPokeballs");
     enemyPokeballs.innerHTML = "";
-
     enemyTeam.forEach(() => {
         const pokeball = document.createElement("span");
         pokeball.classList.add("enemy-pokeball");
         pokeball.textContent = "●";
         enemyPokeballs.appendChild(pokeball);
     });
-
     updateBattlePokemonUI(activeEnemyPokemon, "enemy");
-
     addBattleLogMessage(`Comienza el combate contra el Entrenador ${currentTrainer}.`);
     addBattleLogMessage(`${activeEnemyPokemon.name} entra al combate.`);
-
     document.querySelector("#resolveMatchupBtn").disabled = false;
-
     showTrainerIntro();
 }
 
@@ -198,6 +200,9 @@ async function handleResolveMatchup() {
     const playerInitialHp = activePokemon.currentHp;
     const enemyInitialHp = activeEnemyPokemon.currentHp;
     const result = resolveMatchup(activePokemon, activeEnemyPokemon);
+    if (result.maxRevive.pokemonA) {
+        activePokemon.maxRevivesUsed++;
+    }
     updateBattlePokemonUI(activePokemon, "player", playerInitialHp);
     updateBattlePokemonUI(activeEnemyPokemon, "enemy", enemyInitialHp);
     addBattleLogMessage(`${activePokemon.name} se enfrenta a ${activeEnemyPokemon.name}.`);
@@ -209,10 +214,11 @@ async function handleResolveMatchup() {
         for (const attack of turn.attacks) {
             const attackerSide = attack.attacker === activePokemon ? "player" : "enemy";
             const defenderSide = attack.defender === activePokemon ? "player" : "enemy";
-            addBattleLogMessage(`${attack.attacker.name} ataca con tipo ${attack.type}.`);
+            const attackName = attack.type === "struggle" ? "Forcejeo" : `tipo ${attack.type}`;
+            addBattleLogMessage(`${attack.attacker.name} ataca con ${attackName}.`);
             await wait(500);
             const effectivenessMessage = getEffectivenessMessage(attack.multiplier);
-            if (effectivenessMessage) {
+            if (effectivenessMessage && attack.type !== "struggle") {
                 addBattleLogMessage(effectivenessMessage);
                 await wait(400);
             }
@@ -254,31 +260,43 @@ async function handleResolveMatchup() {
             await wait(500);
         }
     }
-    renderBattleTeam();
     if (result.winner) {
         addBattleLogMessage(`${result.loser.name} se ha debilitado.`);
         await wait(500);
         addBattleLogMessage(`${result.winner.name} gana el enfrentamiento.`);
         await wait(700);
+    }
+    if (result.maxRevive.pokemonA) {
+        updateBattlePokemonUI(activePokemon, "player");
+        addBattleLogMessage(`¡El Revivir Máximo de ${activePokemon.name} se activa!`);
+        await wait(500);
+        addBattleLogMessage(`${activePokemon.name} vuelve al combate con todos sus PS.`);
+        await wait(700);
+    }
+    if (result.maxRevive.pokemonB) {
+        updateBattlePokemonUI(activeEnemyPokemon, "enemy");
+        addBattleLogMessage(`¡El Revivir Máximo de ${activeEnemyPokemon.name} se activa!`);
+        await wait(500);
+        addBattleLogMessage(`${activeEnemyPokemon.name} vuelve al combate con todos sus PS.`);
+        await wait(700);
+    }
+    renderBattleTeam();
+    updateEnemyPokeballs();
+    if (result.winner) {
         if (result.winner === activePokemon) {
             if (!hasLivingEnemyPokemon()) {
-                const enemyPokeballs = document.querySelectorAll(".enemy-pokeball");
-                enemyPokeballs.forEach(pokeball => {
-                    pokeball.classList.add("defeated");
-                });
                 activeEnemyPokemon = null;
                 addBattleLogMessage(`¡Has derrotado al Entrenador ${currentTrainer}!`);
                 resolveMatchupBtn.disabled = true;
                 if (currentTrainer < TOTAL_TRAINERS) {
                     await wait(1000);
-
                     const trainer = runTrainers[currentTrainer - 1];
-
                     document.querySelector("#defeatedTrainerName").textContent = trainer.name;
                     document.querySelector("#battleScreen").classList.add("hidden");
                     document.querySelector("#trainerDefeatedScreen").classList.remove("hidden");
                 } else {
-                    addBattleLogMessage("¡Has derrotado a los 5 entrenadores!");
+                    await wait(1000);
+                    showResultScreen(true);
                 }
                 return;
             }
@@ -294,6 +312,8 @@ async function handleResolveMatchup() {
                 addBattleLogMessage("Tu equipo ha caído.");
                 resolveMatchupBtn.disabled = true;
                 renderBattleTeam();
+                await wait(1000);
+                showResultScreen(false);
                 return;
             }
             activePokemon = null;
@@ -328,9 +348,16 @@ function renderBattleTeam() {
         if (pokemon.fainted) {
             card.classList.add("fainted");
         }
+        const typesHtml = pokemon.types.map(type => `
+            <span class="type" style="--type-color: var(--type-${type})">
+                <img class="type-icon" src="https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/${type}.svg" alt="">
+                ${type}
+            </span>
+        `).join("");
         card.innerHTML = `
             <img src="${pokemon.sprite}" alt="${pokemon.name}">
             <h2>${pokemon.name}</h2>
+            <div class="pokemon-types">${typesHtml}</div>
             <p>${pokemon.currentHp} / ${pokemon.maxHp} PS</p>
             <p>${pokemon.item ? pokemon.item.name : "Sin objeto"}</p>
         `;
@@ -357,13 +384,189 @@ function startTrainerBattle() {
 
 function showTrainerIntro() {
     const trainer = runTrainers[currentTrainer - 1];
-
     document.querySelector("#trainerIntroSprite").src = trainer.sprite;
     document.querySelector("#trainerIntroSprite").alt = trainer.name;
     document.querySelector("#trainerIntroName").textContent = trainer.name;
-
     document.querySelector("#trainerIntroScreen").classList.remove("hidden");
     document.querySelector("#battleScreen").classList.add("hidden");
+}
+
+function calculateRunScore(trainersDefeated) {
+    const survivors = selectedPokemon.filter(pokemon => !pokemon.fainted).length;
+    const totalKos = selectedPokemon.reduce((total, pokemon) => total + pokemon.matchupWins, 0);
+    const currentHp = selectedPokemon.reduce((total, pokemon) => total + pokemon.currentHp, 0);
+    const maxHp = selectedPokemon.reduce((total, pokemon) => total + pokemon.maxHp, 0);
+    const maxRevivesUsed = selectedPokemon.reduce((total, pokemon) => total + pokemon.maxRevivesUsed, 0);
+    const hpRatio = maxHp > 0 ? currentHp / maxHp : 0;
+    return trainersDefeated * 1000 + survivors * 500 + Math.round(hpRatio * 2000) + totalKos * 100 - maxRevivesUsed * 300;
+}
+
+function getRunRank(score) {
+    if (score >= 11000) {
+        return "S";
+    }
+    if (score >= 9000) {
+        return "A";
+    }
+    if (score >= 7000) {
+        return "B";
+    }
+    return "C";
+}
+
+function getMvpPokemon() {
+    if (selectedPokemon.length === 0) {
+        return null;
+    }
+    return selectedPokemon.reduce((mvp, pokemon) => {
+        return pokemon.matchupWins > mvp.matchupWins ? pokemon : mvp;
+    }, selectedPokemon[0]);
+}
+
+function renderResultTeam() {
+    const resultTeam = document.querySelector("#resultTeam");
+    resultTeam.innerHTML = "";
+    selectedPokemon.forEach(pokemon => {
+        const card = document.createElement("article");
+        card.classList.add("pokemon-card");
+        if (pokemon.fainted) {
+            card.classList.add("fainted");
+        }
+        card.innerHTML = `
+            <img src="${pokemon.sprite}" alt="${pokemon.name}">
+            <h2>${pokemon.name}</h2>
+            <p>${pokemon.currentHp} / ${pokemon.maxHp} PS</p>
+            <p>${pokemon.matchupWins} victorias 1v1</p>
+        `;
+        resultTeam.appendChild(card);
+    });
+}
+
+function renderResultMvp() {
+    const mvp = getMvpPokemon();
+    const resultMvp = document.querySelector("#resultMvp");
+    if (!mvp) {
+        resultMvp.innerHTML = "";
+        return;
+    }
+    resultMvp.innerHTML = `
+        <span>MVP DE LA RUN</span>
+        <img src="${mvp.sprite}" alt="${mvp.name}">
+        <strong>${mvp.name}</strong>
+        <p>${mvp.matchupWins} victorias 1v1</p>
+    `;
+}
+
+function showResultScreen(victory) {
+    const trainersDefeated = victory ? TOTAL_TRAINERS : currentTrainer - 1;
+    const survivors = selectedPokemon.filter(pokemon => !pokemon.fainted).length;
+    const totalKos = selectedPokemon.reduce((total, pokemon) => total + pokemon.matchupWins, 0);
+    const score = calculateRunScore(trainersDefeated);
+    const rank = getRunRank(score);
+    lastRunResult = {
+        victory,
+        trainersDefeated,
+        survivors,
+        totalKos,
+        score,
+        rank
+    };
+    document.querySelector("#battleScreen").classList.add("hidden");
+    document.querySelector("#trainerIntroScreen").classList.add("hidden");
+    document.querySelector("#trainerDefeatedScreen").classList.add("hidden");
+    document.querySelector("#resultScreen").classList.remove("hidden");
+    document.querySelector("#resultLabel").textContent = victory ? "🏆 RUN COMPLETADA" : "RUN FINALIZADA";
+    document.querySelector("#resultTitle").textContent = victory ? "¡VICTORIA!" : "DERROTA";
+    document.querySelector("#resultMessage").textContent = victory ? "¡Enhorabuena, has vencido a los 5 entrenadores!" : `Tu equipo ha caído ante ${runTrainers[currentTrainer - 1].name}.`;
+    document.querySelector("#resultTrainers").textContent = `${trainersDefeated} / ${TOTAL_TRAINERS}`;
+    document.querySelector("#resultSurvivors").textContent = `${survivors} / ${TEAM_SIZE}`;
+    document.querySelector("#resultKos").textContent = totalKos;
+    document.querySelector("#resultScore").textContent = score;
+    document.querySelector("#resultRank").textContent = rank;
+    renderResultMvp();
+    renderResultTeam();
+}
+
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = src;
+    });
+}
+
+async function downloadResultCard() {
+    if (!lastRunResult) {
+        return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1350;
+    const ctx = canvas.getContext("2d");
+    const mvp = getMvpPokemon();
+    ctx.fillStyle = "#f4f6f8";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#111111";
+    ctx.textAlign = "center";
+    ctx.font = "700 28px Arial";
+    ctx.fillText(lastRunResult.victory ? "POKÉBATTLE · RUN COMPLETADA" : "POKÉBATTLE · RUN FINALIZADA", 540, 85);
+    ctx.font = "700 72px Arial";
+    ctx.fillText(lastRunResult.victory ? "¡VICTORIA!" : "DERROTA", 540, 175);
+    ctx.font = "700 22px Arial";
+    ctx.fillText(`RANGO ${lastRunResult.rank}`, 540, 230);
+    ctx.font = "700 52px Arial";
+    ctx.fillText(`${lastRunResult.score} PUNTOS`, 540, 295);
+    const statLabels = ["ENTRENADORES", "SUPERVIVIENTES", "VICTORIAS 1V1"];
+    const statValues = [`${lastRunResult.trainersDefeated} / ${TOTAL_TRAINERS}`, `${lastRunResult.survivors} / ${TEAM_SIZE}`, `${lastRunResult.totalKos}`];
+    statLabels.forEach((label, index) => {
+        const x = 250 + index * 290;
+        ctx.font = "700 17px Arial";
+        ctx.fillText(label, x, 370);
+        ctx.font = "700 34px Arial";
+        ctx.fillText(statValues[index], x, 415);
+    });
+    ctx.font = "700 26px Arial";
+    ctx.fillText("TU EQUIPO", 540, 500);
+    const pokemonImages = await Promise.all(selectedPokemon.map(pokemon => loadImage(pokemon.sprite).catch(() => null)));
+    selectedPokemon.forEach((pokemon, index) => {
+        const column = index % 3;
+        const row = Math.floor(index / 3);
+        const x = 210 + column * 330;
+        const y = 610 + row * 300;
+        ctx.save();
+        if (pokemon.fainted) {
+            ctx.globalAlpha = 0.35;
+        }
+        if (pokemonImages[index]) {
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(pokemonImages[index], x - 80, y - 80, 160, 160);
+        }
+        ctx.fillStyle = "#111111";
+        ctx.font = "700 24px Arial";
+        ctx.fillText(pokemon.name.toUpperCase(), x, y + 110);
+        ctx.font = "18px Arial";
+        ctx.fillText(`${pokemon.matchupWins} victorias 1v1`, x, y + 145);
+        ctx.restore();
+    });
+    if (mvp) {
+        ctx.fillStyle = "#111111";
+        ctx.font = "700 20px Arial";
+        ctx.fillText("MVP DE LA RUN", 540, 1160);
+        ctx.font = "700 32px Arial";
+        ctx.fillText(`${mvp.name.toUpperCase()} · ${mvp.matchupWins} VICTORIAS 1V1`, 540, 1205);
+    }
+    ctx.font = "700 18px Arial";
+    ctx.fillText("POKÉBATTLE", 540, 1290);
+    const link = document.createElement("a");
+    link.download = `pokemon-run-${lastRunResult.victory ? "victoria" : "derrota"}-${lastRunResult.score}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+}
+
+function startNewRun() {
+    window.location.reload();
 }
 
 async function startRun() {

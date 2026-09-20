@@ -10,7 +10,7 @@ export function getOffensiveStat(pokemon) {
     if (pokemon.item?.effect === "choice-band") {
         offensiveStat *= 1.5;
     }
-    return offensiveStat
+    return offensiveStat;
 }
 
 export function getDefensiveStat(pokemon, category) {
@@ -43,7 +43,7 @@ export function getFirstAttacker(pokemonA, pokemonB) {
     if (pokemonASpeed > pokemonBSpeed) {
         return pokemonA;
     }
-    if(pokemonBSpeed > pokemonASpeed) {
+    if (pokemonBSpeed > pokemonASpeed) {
         return pokemonB;
     }
     return Math.random() < 0.5 ? pokemonA : pokemonB;
@@ -61,7 +61,7 @@ export function getBestAttackType(attacker, defender) {
     let bestMultiplier = getTypeMultiplier(bestType, defender.types);
     attacker.types.forEach(type => {
         const multiplier = getTypeMultiplier(type, defender.types);
-        if(multiplier > bestMultiplier) {
+        if (multiplier > bestMultiplier) {
             bestType = type;
             bestMultiplier = multiplier;
         }
@@ -69,7 +69,7 @@ export function getBestAttackType(attacker, defender) {
     return {
         type: bestType,
         multiplier: bestMultiplier
-    }
+    };
 }
 
 const ATTACK_MULTIPLIER = 0.50;
@@ -77,6 +77,7 @@ const DEFENSE_MULTIPLIER = 0.20;
 const BASE_DAMAGE = 20;
 const MIN_RANDOM_FACTOR = 0.85;
 const MAX_RANDOM_FACTOR = 1;
+const MAX_MATCHUP_TURNS = 1000;
 
 export function getDamageMultiplier(pokemon, attackType) {
     let multiplier = 1;
@@ -110,6 +111,15 @@ export function calculateBaseDamage(attacker, defender) {
         type: attackType.type,
         multiplier: attackType.multiplier
     };
+}
+
+function calculateStruggleDamage(attacker, defender) {
+    const category = getAttackCategory(attacker);
+    const offensiveStat = getOffensiveStat(attacker);
+    const defensiveStat = getDefensiveStat(defender, category);
+    const baseDamage = offensiveStat * ATTACK_MULTIPLIER - defensiveStat * DEFENSE_MULTIPLIER + BASE_DAMAGE;
+    const randomFactor = getRandomDamageFactor();
+    return Math.max(5, Math.round(baseDamage * randomFactor));
 }
 
 function applyLifeOrbRecoil(pokemon) {
@@ -148,7 +158,7 @@ export function applyLeftovers(pokemon) {
     }
     const healing = Math.max(1, Math.floor(pokemon.maxHp / 16));
     const previousHp = pokemon.currentHp;
-    pokemon.currentHp = Math.min(pokemon.maxHp,pokemon.currentHp + healing);
+    pokemon.currentHp = Math.min(pokemon.maxHp, pokemon.currentHp + healing);
     return pokemon.currentHp - previousHp;
 }
 
@@ -201,14 +211,57 @@ export function executeAttack(attacker, defender) {
     };
 }
 
-export function executeTurn(pokemonA, pokemonB) {
+function executeStruggleAttack(attacker, defender) {
+    const damage = calculateStruggleDamage(attacker, defender);
+    const defenderHpBeforeAttack = defender.currentHp;
+    const wouldFaint = damage >= defender.currentHp;
+    const focusBandActivated = wouldFaint && defender.item?.effect === "focus-band" && Math.random() < 0.10;
+    if (focusBandActivated) {
+        defender.currentHp = 1;
+    } else {
+        defender.currentHp = Math.max(0, defender.currentHp - damage);
+    }
+    defender.fainted = defender.currentHp === 0;
+    const damageDealt = defenderHpBeforeAttack - defender.currentHp;
+    const defenderHpAfterAttack = defender.currentHp;
+    const rockyHelmetDamage = damageDealt > 0 ? applyRockyHelmet(attacker, defender) : 0;
+    const attackerHpAfterRockyHelmet = attacker.currentHp;
+    const sitrusHealing = applySitrusBerry(defender);
+    const defenderHpAfterSitrus = defender.currentHp;
+    return {
+        attacker,
+        defender,
+        damage,
+        type: "struggle",
+        multiplier: 1,
+        defenderHpBeforeAttack,
+        defenderCurrentHp: defenderHpAfterAttack,
+        defenderFainted: defender.fainted,
+        focusBandActivated,
+        rockyHelmetDamage,
+        attackerHpAfterRockyHelmet,
+        sitrusHealing,
+        defenderHpAfterSitrus,
+        lifeOrbRecoil: 0,
+        attackerHpAfterLifeOrb: attacker.currentHp,
+        damageDealt
+    };
+}
+
+function areMutuallyImmune(pokemonA, pokemonB) {
+    const pokemonAAttack = getBestAttackType(pokemonA, pokemonB);
+    const pokemonBAttack = getBestAttackType(pokemonB, pokemonA);
+    return pokemonAAttack.multiplier === 0 && pokemonBAttack.multiplier === 0;
+}
+
+export function executeTurn(pokemonA, pokemonB, useStruggle = false) {
     const firstAttacker = getFirstAttacker(pokemonA, pokemonB);
     const secondAttacker = firstAttacker === pokemonA ? pokemonB : pokemonA;
     const attacks = [];
-    const firstAttackResult = executeAttack(firstAttacker, secondAttacker);
+    const firstAttackResult = useStruggle ? executeStruggleAttack(firstAttacker, secondAttacker) : executeAttack(firstAttacker, secondAttacker);
     attacks.push(firstAttackResult);
     if (!secondAttacker.fainted && !firstAttacker.fainted) {
-        const secondAttackResult = executeAttack(secondAttacker, firstAttacker);
+        const secondAttackResult = useStruggle ? executeStruggleAttack(secondAttacker, firstAttacker) : executeAttack(secondAttacker, firstAttacker);
         attacks.push(secondAttackResult);
     }
     const pokemonALeftoversHealing = applyLeftovers(pokemonA);
@@ -231,9 +284,21 @@ export function executeTurn(pokemonA, pokemonB) {
 
 export function resolveMatchup(pokemonA, pokemonB) {
     const turns = [];
-    while (!pokemonA.fainted && !pokemonB.fainted) {
-        const turnResult = executeTurn(pokemonA, pokemonB);
+    const useStruggle = areMutuallyImmune(pokemonA, pokemonB);
+    let turnCount = 0;
+    while (!pokemonA.fainted && !pokemonB.fainted && turnCount < MAX_MATCHUP_TURNS) {
+        const turnResult = executeTurn(pokemonA, pokemonB, useStruggle);
         turns.push(turnResult);
+        turnCount++;
+    }
+    if (!pokemonA.fainted && !pokemonB.fainted) {
+        if (pokemonA.currentHp <= pokemonB.currentHp) {
+            pokemonA.currentHp = 0;
+            pokemonA.fainted = true;
+        } else {
+            pokemonB.currentHp = 0;
+            pokemonB.fainted = true;
+        }
     }
     let winner = null;
     let loser = null;
@@ -261,5 +326,5 @@ export function resolveMatchup(pokemonA, pokemonB) {
 }
 
 function getRandomDamageFactor() {
-    return (Math.random() * (MAX_RANDOM_FACTOR - MIN_RANDOM_FACTOR) + MIN_RANDOM_FACTOR);
+    return Math.random() * (MAX_RANDOM_FACTOR - MIN_RANDOM_FACTOR) + MIN_RANDOM_FACTOR;
 }

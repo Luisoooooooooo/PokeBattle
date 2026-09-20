@@ -22,6 +22,7 @@ export function createPokemon(data) {
         speed: speedStat.base_stat,
         fainted: false,
         item: null,
-        matchupWins: 0
+        matchupWins: 0,
+        maxRevivesUsed: 0
     };
 }
