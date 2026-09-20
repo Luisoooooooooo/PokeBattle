@@ -3,6 +3,7 @@ import { renderPokemonCards } from "./ui/pokemon-cards.js";
 import { renderItemTeam, renderItemOffer } from "./ui/item-selection.js";
 import { resolveMatchup } from "./game/battle.js";
 import { getRandomTrainers } from "./data/trainers.js";
+import { formatPokemonName, formatTypeName } from "./utils/formatters.js";
 
 const TEAM_SIZE = 6;
 const TOTAL_TRAINERS = 5;
@@ -105,19 +106,52 @@ function updateBattlePokemonUI(pokemon, side, currentHp = pokemon.currentHp) {
     const hpText = document.querySelector(`#${side}HpText`);
     const hpBar = document.querySelector(`#${side}HpBar`);
     sprite.src = pokemon.sprite;
-    sprite.alt = pokemon.name;
-    name.textContent = pokemon.name;
+    sprite.alt = formatPokemonName(pokemon.name);
+    name.textContent = formatPokemonName(pokemon.name);
     hpText.textContent = `${currentHp} / ${pokemon.maxHp} PS`;
     const hpPercentage = (currentHp / pokemon.maxHp) * 100;
     hpBar.style.width = `${Math.max(0, hpPercentage)}%`;
 }
 
-function addBattleLogMessage(message) {
+function scrollBattleLog() {
+    const battleLog = document.querySelector("#battleLog");
+    battleLog.scrollTop = battleLog.scrollHeight;
+}
+
+function addBattleLogMessage(message, type = "system") {
     const battleLog = document.querySelector("#battleLog");
     const logMessage = document.createElement("p");
+    logMessage.classList.add("log-message", `log-${type}`);
     logMessage.textContent = message;
     battleLog.appendChild(logMessage);
-    battleLog.scrollTop = battleLog.scrollHeight;
+    scrollBattleLog();
+}
+
+function addBattleLogTurn(turnNumber) {
+    const battleLog = document.querySelector("#battleLog");
+    const turn = document.createElement("div");
+    turn.classList.add("log-turn");
+    turn.textContent = `Turno ${turnNumber}`;
+    battleLog.appendChild(turn);
+    scrollBattleLog();
+}
+
+function addBattleLogAttack(attack, effects = []) {
+    const battleLog = document.querySelector("#battleLog");
+    const isPlayer = attack.attacker === activePokemon;
+    const attackName = attack.type === "struggle" ? "Forcejeo" : `tipo ${formatTypeName(attack.type)}`;
+    const attackBlock = document.createElement("div");
+    attackBlock.classList.add("log-attack", isPlayer ? "log-attack-player" : "log-attack-enemy");
+    const attackTitle = document.createElement("strong");
+    attackTitle.textContent = `${formatPokemonName(attack.attacker.name)} ataca con ${attackName}.`;
+    attackBlock.appendChild(attackTitle);
+    effects.forEach(effect => {
+        const effectLine = document.createElement("span");
+        effectLine.textContent = effect;
+        attackBlock.appendChild(effectLine);
+    });
+    battleLog.appendChild(attackBlock);
+    scrollBattleLog();
 }
 
 function getEffectivenessMessage(multiplier) {
@@ -181,8 +215,8 @@ async function startNextTrainer() {
         enemyPokeballs.appendChild(pokeball);
     });
     updateBattlePokemonUI(activeEnemyPokemon, "enemy");
-    addBattleLogMessage(`Comienza el combate contra el Entrenador ${currentTrainer}.`);
-    addBattleLogMessage(`${activeEnemyPokemon.name} entra al combate.`);
+    addBattleLogMessage(`Comienza el combate contra el Entrenador ${currentTrainer}.`, "important");
+    addBattleLogMessage(`${formatPokemonName(activeEnemyPokemon.name)} entra al combate.`);
     document.querySelector("#resolveMatchupBtn").disabled = false;
     showTrainerIntro();
 }
@@ -194,7 +228,7 @@ async function handleResolveMatchup() {
     const resolveMatchupBtn = document.querySelector("#resolveMatchupBtn");
     resolveMatchupBtn.disabled = true;
     if (playerPokemonNeedsEntry) {
-        addBattleLogMessage(`${activePokemon.name} entra al combate.`);
+        addBattleLogMessage(`${formatPokemonName(activePokemon.name)} entra al combate.`);
         playerPokemonNeedsEntry = false;
     }
     const playerInitialHp = activePokemon.currentHp;
@@ -205,79 +239,69 @@ async function handleResolveMatchup() {
     }
     updateBattlePokemonUI(activePokemon, "player", playerInitialHp);
     updateBattlePokemonUI(activeEnemyPokemon, "enemy", enemyInitialHp);
-    addBattleLogMessage(`${activePokemon.name} se enfrenta a ${activeEnemyPokemon.name}.`);
+    addBattleLogMessage(`${formatPokemonName(activePokemon.name)} se enfrenta a ${formatPokemonName(activeEnemyPokemon.name)}.`, "matchup");
     await wait(700);
     for (let turnIndex = 0; turnIndex < result.turns.length; turnIndex++) {
         const turn = result.turns[turnIndex];
-        addBattleLogMessage(`Turno ${turnIndex + 1}`);
+        addBattleLogTurn(turnIndex + 1);
         await wait(500);
         for (const attack of turn.attacks) {
             const attackerSide = attack.attacker === activePokemon ? "player" : "enemy";
             const defenderSide = attack.defender === activePokemon ? "player" : "enemy";
-            const attackName = attack.type === "struggle" ? "Forcejeo" : `tipo ${attack.type}`;
-            addBattleLogMessage(`${attack.attacker.name} ataca con ${attackName}.`);
-            await wait(500);
+            const effects = [];
             const effectivenessMessage = getEffectivenessMessage(attack.multiplier);
-            if (effectivenessMessage && attack.type !== "struggle") {
-                addBattleLogMessage(effectivenessMessage);
-                await wait(400);
-            }
             updateBattlePokemonUI(attack.defender, defenderSide, attack.defenderCurrentHp);
             if (attack.damageDealt > 0) {
-                addBattleLogMessage(`${attack.defender.name} pierde ${attack.damageDealt} PS.`);
+                effects.push(`${formatPokemonName(attack.defender.name)} pierde ${attack.damageDealt} PS.`);
             } else {
-                addBattleLogMessage(`${attack.defender.name} no recibe daño.`);
+                effects.push(`${formatPokemonName(attack.defender.name)} no recibe daño.`);
             }
-            await wait(600);
+            if (effectivenessMessage && attack.type !== "struggle") {
+                effects.push(effectivenessMessage);
+            }
             if (attack.focusBandActivated) {
-                addBattleLogMessage(`¡La Banda Focus permite a ${attack.defender.name} resistir con 1 PS!`);
-                await wait(500);
+                effects.push(`¡La Banda Focus permite a ${formatPokemonName(attack.defender.name)} resistir con 1 PS!`);
             }
             if (attack.rockyHelmetDamage > 0) {
                 updateBattlePokemonUI(attack.attacker, attackerSide, attack.attackerHpAfterRockyHelmet);
-                addBattleLogMessage(`${attack.attacker.name} pierde ${attack.rockyHelmetDamage} PS por el Casco Dentado.`);
-                await wait(500);
+                effects.push(`${formatPokemonName(attack.attacker.name)} pierde ${attack.rockyHelmetDamage} PS por el Casco Dentado.`);
             }
             if (attack.sitrusHealing > 0) {
                 updateBattlePokemonUI(attack.defender, defenderSide, attack.defenderHpAfterSitrus);
-                addBattleLogMessage(`${attack.defender.name} recupera ${attack.sitrusHealing} PS con su Baya Zidra.`);
-                await wait(500);
+                effects.push(`${formatPokemonName(attack.defender.name)} recupera ${attack.sitrusHealing} PS con su Baya Zidra.`);
             }
             if (attack.lifeOrbRecoil > 0) {
                 updateBattlePokemonUI(attack.attacker, attackerSide, attack.attackerHpAfterLifeOrb);
-                addBattleLogMessage(`${attack.attacker.name} pierde ${attack.lifeOrbRecoil} PS por la Vidasfera.`);
-                await wait(500);
+                effects.push(`${formatPokemonName(attack.attacker.name)} pierde ${attack.lifeOrbRecoil} PS por la Vidasfera.`);
             }
+            addBattleLogAttack(attack, effects);
+            await wait(900);
         }
         if (turn.leftovers.pokemonA > 0) {
             updateBattlePokemonUI(activePokemon, "player", turn.leftovers.pokemonAHpAfterLeftovers);
-            addBattleLogMessage(`${activePokemon.name} recupera ${turn.leftovers.pokemonA} PS con Restos.`);
+            addBattleLogMessage(`${formatPokemonName(activePokemon.name)} recupera ${turn.leftovers.pokemonA} PS con Restos.`, "item");
             await wait(500);
         }
         if (turn.leftovers.pokemonB > 0) {
             updateBattlePokemonUI(activeEnemyPokemon, "enemy", turn.leftovers.pokemonBHpAfterLeftovers);
-            addBattleLogMessage(`${activeEnemyPokemon.name} recupera ${turn.leftovers.pokemonB} PS con Restos.`);
+            addBattleLogMessage(`${formatPokemonName(activeEnemyPokemon.name)} recupera ${turn.leftovers.pokemonB} PS con Restos.`, "item");
             await wait(500);
         }
     }
     if (result.winner) {
-        addBattleLogMessage(`${result.loser.name} se ha debilitado.`);
+        addBattleLogMessage(`${formatPokemonName(result.loser.name)} se ha debilitado.`, "fainted");
         await wait(500);
-        addBattleLogMessage(`${result.winner.name} gana el enfrentamiento.`);
+        addBattleLogMessage(`${formatPokemonName(result.winner.name)} gana el enfrentamiento.`, "winner");
         await wait(700);
     }
     if (result.maxRevive.pokemonA) {
         updateBattlePokemonUI(activePokemon, "player");
-        addBattleLogMessage(`¡El Revivir Máximo de ${activePokemon.name} se activa!`);
-        await wait(500);
-        addBattleLogMessage(`${activePokemon.name} vuelve al combate con todos sus PS.`);
+        addBattleLogMessage(`¡El Revivir Máximo de ${formatPokemonName(activePokemon.name)} se activa! ${formatPokemonName(activePokemon.name)} vuelve al combate con todos sus PS.`, "item");
         await wait(700);
     }
     if (result.maxRevive.pokemonB) {
         updateBattlePokemonUI(activeEnemyPokemon, "enemy");
-        addBattleLogMessage(`¡El Revivir Máximo de ${activeEnemyPokemon.name} se activa!`);
-        await wait(500);
-        addBattleLogMessage(`${activeEnemyPokemon.name} vuelve al combate con todos sus PS.`);
+        addBattleLogMessage(`¡El Revivir Máximo de ${formatPokemonName(activeEnemyPokemon.name)} se activa! ${formatPokemonName(activeEnemyPokemon.name)} vuelve al combate con todos sus PS.`, "item");
         await wait(700);
     }
     renderBattleTeam();
@@ -286,7 +310,7 @@ async function handleResolveMatchup() {
         if (result.winner === activePokemon) {
             if (!hasLivingEnemyPokemon()) {
                 activeEnemyPokemon = null;
-                addBattleLogMessage(`¡Has derrotado al Entrenador ${currentTrainer}!`);
+                addBattleLogMessage(`¡Has derrotado al Entrenador ${currentTrainer}!`, "important");
                 resolveMatchupBtn.disabled = true;
                 if (currentTrainer < TOTAL_TRAINERS) {
                     await wait(1000);
@@ -302,14 +326,14 @@ async function handleResolveMatchup() {
             }
             const hasNextEnemy = showNextEnemyPokemon();
             if (hasNextEnemy) {
-                addBattleLogMessage(`${activeEnemyPokemon.name} entra al combate.`);
+                addBattleLogMessage(`${formatPokemonName(activeEnemyPokemon.name)} entra al combate.`);
                 resolveMatchupBtn.disabled = false;
             }
         }
         if (result.loser === activePokemon) {
             if (!hasLivingPlayerPokemon()) {
                 activePokemon = null;
-                addBattleLogMessage("Tu equipo ha caído.");
+                addBattleLogMessage("Tu equipo ha caído.", "important");
                 resolveMatchupBtn.disabled = true;
                 renderBattleTeam();
                 await wait(1000);
@@ -317,11 +341,11 @@ async function handleResolveMatchup() {
                 return;
             }
             activePokemon = null;
-            addBattleLogMessage("Elige otro Pokémon de tu equipo para continuar.");
+            addBattleLogMessage("Elige otro Pokémon de tu equipo para continuar.", "important");
             renderBattleTeam();
         }
     } else {
-        addBattleLogMessage("Ambos Pokémon se han debilitado.");
+        addBattleLogMessage("Ambos Pokémon se han debilitado.", "fainted");
     }
 }
 
@@ -351,12 +375,12 @@ function renderBattleTeam() {
         const typesHtml = pokemon.types.map(type => `
             <span class="type" style="--type-color: var(--type-${type})">
                 <img class="type-icon" src="https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/${type}.svg" alt="">
-                ${type}
+                ${formatTypeName(type)}
             </span>
         `).join("");
         card.innerHTML = `
-            <img src="${pokemon.sprite}" alt="${pokemon.name}">
-            <h2>${pokemon.name}</h2>
+            <img src="${pokemon.sprite}" alt="${formatPokemonName(pokemon.name)}">
+            <h2>${formatPokemonName(pokemon.name)}</h2>
             <div class="pokemon-types">${typesHtml}</div>
             <p>${pokemon.currentHp} / ${pokemon.maxHp} PS</p>
             <p>${pokemon.item ? pokemon.item.name : "Sin objeto"}</p>
@@ -433,8 +457,8 @@ function renderResultTeam() {
             card.classList.add("fainted");
         }
         card.innerHTML = `
-            <img src="${pokemon.sprite}" alt="${pokemon.name}">
-            <h2>${pokemon.name}</h2>
+            <img src="${pokemon.sprite}" alt="${formatPokemonName(pokemon.name)}">
+            <h2>${formatPokemonName(pokemon.name)}</h2>
             <p>${pokemon.currentHp} / ${pokemon.maxHp} PS</p>
             <p>${pokemon.matchupWins} victorias 1v1</p>
         `;
@@ -451,8 +475,8 @@ function renderResultMvp() {
     }
     resultMvp.innerHTML = `
         <span>MVP DE LA RUN</span>
-        <img src="${mvp.sprite}" alt="${mvp.name}">
-        <strong>${mvp.name}</strong>
+        <img src="${mvp.sprite}" alt="${formatPokemonName(mvp.name)}">
+        <strong>${formatPokemonName(mvp.name)}</strong>
         <p>${mvp.matchupWins} victorias 1v1</p>
     `;
 }
@@ -545,7 +569,7 @@ async function downloadResultCard() {
         }
         ctx.fillStyle = "#111111";
         ctx.font = "700 24px Arial";
-        ctx.fillText(pokemon.name.toUpperCase(), x, y + 110);
+        ctx.fillText(formatPokemonName(pokemon.name).toUpperCase(), x, y + 110);
         ctx.font = "18px Arial";
         ctx.fillText(`${pokemon.matchupWins} victorias 1v1`, x, y + 145);
         ctx.restore();
@@ -555,7 +579,7 @@ async function downloadResultCard() {
         ctx.font = "700 20px Arial";
         ctx.fillText("MVP DE LA RUN", 540, 1160);
         ctx.font = "700 32px Arial";
-        ctx.fillText(`${mvp.name.toUpperCase()} · ${mvp.matchupWins} VICTORIAS 1V1`, 540, 1205);
+        ctx.fillText(`${formatPokemonName(mvp.name).toUpperCase()} · ${mvp.matchupWins} VICTORIAS 1V1`, 540, 1205);
     }
     ctx.font = "700 18px Arial";
     ctx.fillText("POKÉBATTLE", 540, 1290);
@@ -578,8 +602,8 @@ async function startRun() {
     activePokemon = selectedPokemon[0];
     playerPokemonNeedsEntry = true;
     document.querySelector("#playerBattleSprite").src = activePokemon.sprite;
-    document.querySelector("#playerBattleSprite").alt = activePokemon.name;
-    document.querySelector("#playerBattleName").textContent = activePokemon.name;
+    document.querySelector("#playerBattleSprite").alt = formatPokemonName(activePokemon.name);
+    document.querySelector("#playerBattleName").textContent = formatPokemonName(activePokemon.name);
     document.querySelector("#playerHpText").textContent = `${activePokemon.currentHp} / ${activePokemon.maxHp} PS`;
     const playerHpPercentage = (activePokemon.currentHp / activePokemon.maxHp) * 100;
     document.querySelector("#playerHpBar").style.width = `${playerHpPercentage}%`;
@@ -595,8 +619,8 @@ async function startRun() {
         enemyPokeballs.appendChild(pokeball);
     });
     document.querySelector("#enemyBattleSprite").src = activeEnemyPokemon.sprite;
-    document.querySelector("#enemyBattleSprite").alt = activeEnemyPokemon.name;
-    document.querySelector("#enemyBattleName").textContent = activeEnemyPokemon.name;
+    document.querySelector("#enemyBattleSprite").alt = formatPokemonName(activeEnemyPokemon.name);
+    document.querySelector("#enemyBattleName").textContent = formatPokemonName(activeEnemyPokemon.name);
     document.querySelector("#enemyHpText").textContent = `${activeEnemyPokemon.currentHp} / ${activeEnemyPokemon.maxHp} PS`;
     const enemyHpPercentage = (activeEnemyPokemon.currentHp / activeEnemyPokemon.maxHp) * 100;
     document.querySelector("#enemyHpBar").style.width = `${enemyHpPercentage}%`;

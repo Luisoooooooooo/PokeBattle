@@ -344,7 +344,7 @@ button:disabled {
 
 .item-layout {
   display: grid;
-  grid-template-columns: minmax(320px, 0.75fr) minmax(0, 1.5fr);
+  grid-template-columns: 1fr;
   gap: 24px;
   margin: 30px 0;
 }
@@ -362,14 +362,16 @@ button:disabled {
   font-size: 1.15rem;
 }
 
-.item-team-grid,
-.item-offer-grid {
+.item-team-grid {
   display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
 }
 
 .item-offer-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .item-team-card,
@@ -551,27 +553,51 @@ button:disabled {
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 8px;
 }
 
 .enemy-pokeball {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 23px;
-  height: 23px;
-  border: 2px solid var(--text);
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  border: 2px solid #080b12;
   border-radius: 50%;
-  background: var(--danger);
-  color: var(--text);
-  font-size: 9px;
+  background:
+    linear-gradient(
+      to bottom,
+      #ef5350 0%,
+      #ef5350 44%,
+      #080b12 44%,
+      #080b12 56%,
+      #f7f8fb 56%,
+      #f7f8fb 100%
+    );
+  color: transparent;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
   transition:
     opacity 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    filter 0.2s ease;
+}
+
+.enemy-pokeball::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border: 2px solid #080b12;
+  border-radius: 50%;
+  background: #f7f8fb;
+  transform: translate(-50%, -50%);
 }
 
 .enemy-pokeball.defeated {
   opacity: 0.2;
+  filter: grayscale(1);
   transform: scale(0.82);
 }
 
@@ -749,18 +775,171 @@ button:disabled {
   scroll-behavior: smooth;
 }
 
-.battle-log p {
-  margin: 0;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--line);
+.log-message {
+  margin: 0 0 8px;
   color: var(--muted);
   font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+/* ENFRENTAMIENTO */
+
+.log-matchup {
+  position: relative;
+  margin: 22px 0 12px;
+  padding: 14px 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 207, 58, 0.28);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 207, 58, 0.12),
+      rgba(255, 207, 58, 0.035)
+    ),
+    var(--panel-3);
+  color: var(--text);
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.log-matchup::before {
+  content: "ENFRENTAMIENTO";
+  display: block;
+  margin-bottom: 5px;
+  color: var(--accent);
+  font-size: 0.54rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+
+.log-matchup::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+/* MENSAJES IMPORTANTES */
+
+.log-important {
+  margin: 12px 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 207, 58, 0.18);
+  border-radius: 9px;
+  background: rgba(255, 207, 58, 0.065);
+  color: var(--accent);
+  font-weight: 800;
+}
+
+/* OBJETOS */
+
+.log-item {
+  margin: 10px 0;
+  padding-left: 10px;
+  border-left: 2px solid rgba(255, 207, 58, 0.5);
+  color: var(--accent);
+}
+
+/* POKÉMON DEBILITADO */
+
+.log-fainted {
+  margin-top: 12px;
+  color: var(--danger);
+  font-weight: 800;
+}
+
+/* GANADOR DEL ENFRENTAMIENTO */
+
+.log-winner {
+  margin: 8px 0 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--text);
+  font-weight: 900;
+}
+
+/* TURNOS */
+
+.log-turn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 15px 0 9px;
+  color: rgba(247, 248, 251, 0.68);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.log-turn::before,
+.log-turn::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--line-strong);
+}
+
+.log-turn::before {
+  flex: 0 0 14px;
+}
+
+/* ATAQUES */
+
+.log-attack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 10px 11px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 0.7rem;
   line-height: 1.4;
 }
 
-.battle-log p:last-child {
+.log-attack strong {
   color: var(--text);
+  font-size: 0.72rem;
+  text-transform: none;
 }
+
+.log-attack span {
+  color: var(--muted);
+}
+
+/* ATAQUE DEL JUGADOR */
+
+.log-attack-player {
+  border-color: rgba(101, 217, 139, 0.2);
+  background: rgba(101, 217, 139, 0.075);
+}
+
+.log-attack-player strong {
+  color: #b9f1cb;
+}
+
+/* ATAQUE DEL RIVAL */
+
+.log-attack-enemy {
+  border-color: rgba(255, 95, 109, 0.2);
+  background: rgba(255, 95, 109, 0.075);
+}
+
+.log-attack-enemy strong {
+  color: #ffb7bd;
+}
+
+/* SCROLL */
 
 .battle-log::-webkit-scrollbar {
   width: 5px;
@@ -984,8 +1163,12 @@ button:disabled {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .item-layout {
-    grid-template-columns: 1fr;
+  .item-team-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .item-offer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .battle-layout {
@@ -1047,8 +1230,9 @@ button:disabled {
     padding: 15px;
   }
 
+  .item-team-grid,
   .item-offer-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .battle-header {
@@ -1137,7 +1321,9 @@ button:disabled {
 @media (max-width: 420px) {
   .pokemon-grid,
   .battle-team .pokemon-grid,
-  .result-team .pokemon-grid {
+  .result-team .pokemon-grid,
+  .item-team-grid,
+  .item-offer-grid {
     grid-template-columns: 1fr;
   }
 }

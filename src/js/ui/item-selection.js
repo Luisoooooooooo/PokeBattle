@@ -1,4 +1,5 @@
 import { renderTypes } from "./pokemon-cards.js";
+import { formatPokemonName } from "../utils/formatters.js";
 
 export function renderItemTeam(pokemonTeam, selectedPokemonId, onPokemonSelect) {
     const container = document.querySelector("#itemTeamGrid");
@@ -10,16 +11,16 @@ export function renderItemTeam(pokemonTeam, selectedPokemonId, onPokemonSelect) 
             card.classList.add("selected");
         }
         card.innerHTML = `
-            <img src="${pokemon.sprite}" alt="${pokemon.name}">
+            <img src="${pokemon.sprite}" alt="${formatPokemonName(pokemon.name)}">
             <div>
-                <strong>${pokemon.name}</strong>
-                <div class="pokemon.types">${renderTypes(pokemon.types)}</div>
+                <strong>${formatPokemonName(pokemon.name)}</strong>
+                <div class="pokemon-types">${renderTypes(pokemon.types)}</div>
                 <p>${pokemon.item ? pokemon.item.name : "Sin objeto"}</p>
                 ${pokemon.item ? `<button class="remove-item-btn" type="button">Quitar objeto</button>` : ""}
             </div>
         `;
         const removeItemBtn = card.querySelector(".remove-item-btn");
-        if(removeItemBtn) {
+        if (removeItemBtn) {
             removeItemBtn.addEventListener("click", event => {
                 event.stopPropagation();
                 pokemon.item = null;
@@ -40,7 +41,7 @@ export function renderItemOffer(items, pokemonTeam, onItemSelect) {
         const equipped = pokemonTeam.some(pokemon => pokemon.item?.id === item.id);
         const card = document.createElement("article");
         card.classList.add("item-card");
-        if(equipped) {
+        if (equipped) {
             card.classList.add("used");
         }
         card.innerHTML = `
@@ -49,7 +50,7 @@ export function renderItemOffer(items, pokemonTeam, onItemSelect) {
             <p>${item.description}</p>
         `;
         card.addEventListener("click", () => {
-            if (equipped){
+            if (equipped) {
                 return;
             }
             onItemSelect(item);
