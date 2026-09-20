@@ -175,6 +175,19 @@ function addBattleLogResult(winner, loser) {
     scrollBattleLog();
 }
 
+function addBattleLogDoubleFaint(playerPokemon, enemyPokemon) {
+    const battleLog = document.querySelector("#battleLog");
+    const resultBlock = document.createElement("div");
+    resultBlock.classList.add("log-result", "log-result-double");
+    resultBlock.innerHTML = `
+        <span class="log-result-label">DOBLE DEBILITAMIENTO</span>
+        <strong class="log-result-name">${formatPokemonName(playerPokemon.name)} Y ${formatPokemonName(enemyPokemon.name)}</strong>
+        <span class="log-result-detail">Ambos Pokémon se han debilitado</span>
+    `;
+    battleLog.appendChild(resultBlock);
+    scrollBattleLog();
+}
+
 function getEffectivenessMessage(multiplier) {
     if (multiplier === 0) {
         return "No afecta al rival.";
@@ -295,14 +308,12 @@ async function handleResolveMatchup() {
             }
             if (attack.sitrusHealing > 0) {
                 updateBattlePokemonUI(attack.defender, defenderSide, attack.defenderHpAfterSitrus);
-                updateBattlePokemonUI(attack.defender, defenderSide, attack.defenderHpAfterSitrus);
                 if (attack.defender === activePokemon) {
                     updateBattleTeamPokemonHp(activePokemon, attack.defenderHpAfterSitrus);
                 }
                 effects.push(`${formatPokemonName(attack.defender.name)} recupera ${attack.sitrusHealing} PS con su Baya Zidra.`);
             }
             if (attack.lifeOrbRecoil > 0) {
-                updateBattlePokemonUI(attack.attacker, attackerSide, attack.attackerHpAfterLifeOrb);
                 updateBattlePokemonUI(attack.attacker, attackerSide, attack.attackerHpAfterLifeOrb);
                 if (attack.attacker === activePokemon) {
                     updateBattleTeamPokemonHp(activePokemon, attack.attackerHpAfterLifeOrb);
@@ -327,6 +338,9 @@ async function handleResolveMatchup() {
     if (result.winner) {
         addBattleLogResult(result.winner, result.loser);
         await wait(700);
+    } else {
+        addBattleLogDoubleFaint(activePokemon, activeEnemyPokemon);
+        await wait(700);
     }
     if (result.maxRevive.pokemonA) {
         updateBattlePokemonUI(activePokemon, "player");
@@ -340,47 +354,51 @@ async function handleResolveMatchup() {
     }
     renderBattleTeam();
     updateEnemyPokeballs();
-    if (result.winner) {
-        if (result.winner === activePokemon) {
-            if (!hasLivingEnemyPokemon()) {
-                activeEnemyPokemon = null;
-                addBattleLogMessage(`¡Has derrotado al Entrenador ${currentTrainer}!`, "important");
-                resolveMatchupBtn.disabled = true;
-                if (currentTrainer < TOTAL_TRAINERS) {
-                    await wait(1000);
-                    const trainer = runTrainers[currentTrainer - 1];
-                    document.querySelector("#defeatedTrainerName").textContent = trainer.name;
-                    document.querySelector("#battleScreen").classList.add("hidden");
-                    document.querySelector("#trainerDefeatedScreen").classList.remove("hidden");
-                } else {
-                    await wait(1000);
-                    showResultScreen(true);
-                }
-                return;
-            }
-            const hasNextEnemy = showNextEnemyPokemon();
-            if (hasNextEnemy) {
-                addBattleLogMessage(`${formatPokemonName(activeEnemyPokemon.name)} entra al combate.`);
-                resolveMatchupBtn.disabled = false;
-            }
-        }
-        if (result.loser === activePokemon) {
-            if (!hasLivingPlayerPokemon()) {
-                activePokemon = null;
-                addBattleLogMessage("Tu equipo ha caído.", "important");
-                resolveMatchupBtn.disabled = true;
-                renderBattleTeam();
-                await wait(1000);
-                showResultScreen(false);
-                return;
-            }
-            activePokemon = null;
-            addBattleLogMessage("Elige otro Pokémon de tu equipo para continuar.", "important");
-            renderBattleTeam();
-        }
-    } else {
-        addBattleLogMessage("Ambos Pokémon se han debilitado.", "fainted");
+    const playerFainted = activePokemon.fainted;
+    const enemyFainted = activeEnemyPokemon.fainted;
+    if (!playerFainted && !enemyFainted) {
+        resolveMatchupBtn.disabled = false;
+        return;
     }
+    if (enemyFainted && !hasLivingEnemyPokemon()) {
+        activeEnemyPokemon = null;
+        addBattleLogMessage(`¡Has derrotado al Entrenador ${currentTrainer}!`, "important");
+        resolveMatchupBtn.disabled = true;
+        if (currentTrainer < TOTAL_TRAINERS) {
+            await wait(1000);
+            const trainer = runTrainers[currentTrainer - 1];
+            document.querySelector("#defeatedTrainerName").textContent = trainer.name;
+            document.querySelector("#battleScreen").classList.add("hidden");
+            document.querySelector("#trainerDefeatedScreen").classList.remove("hidden");
+        } else {
+            await wait(1000);
+            showResultScreen(true);
+        }
+        return;
+    }
+    if (playerFainted && !hasLivingPlayerPokemon()) {
+        activePokemon = null;
+        addBattleLogMessage("Tu equipo ha caído.", "important");
+        resolveMatchupBtn.disabled = true;
+        renderBattleTeam();
+        await wait(1000);
+        showResultScreen(false);
+        return;
+    }
+    if (enemyFainted) {
+        const hasNextEnemy = showNextEnemyPokemon();
+        if (hasNextEnemy) {
+            addBattleLogMessage(`${formatPokemonName(activeEnemyPokemon.name)} entra al combate.`);
+        }
+    }
+    if (playerFainted) {
+        activePokemon = null;
+        addBattleLogMessage("Elige otro Pokémon de tu equipo para continuar.", "important");
+        renderBattleTeam();
+        resolveMatchupBtn.disabled = true;
+        return;
+    }
+    resolveMatchupBtn.disabled = false;
 }
 
 function selectBattlePokemon(pokemon) {
