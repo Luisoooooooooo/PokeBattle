@@ -25,10 +25,16 @@
             </section>
 
             <section id="itemScreen" class="item-screen hidden">
-                <div class="selection-header">
-                    <p>EQUIPA A TU EQUIPO</p>
-                    <h1>Asigna objetos</h1>
-                    <p>Selecciona un Pokémon y después un objeto</p>
+                <div class="item-header">
+                    <div class="selection-header">
+                        <p>EQUIPA A TU EQUIPO</p>
+                        <h1>Asigna objetos</h1>
+                        <p>Selecciona un Pokémon y después un objeto</p>
+                    </div>
+
+                    <button id="startRunBtn">
+                        Empezar la run
+                    </button>
                 </div>
 
                 <div class="item-layout">
@@ -42,8 +48,6 @@
                         <div id="itemOfferGrid" class="item-offer-grid"></div>
                     </div>
                 </div>
-
-                <button id="startRunBtn" class="primary-action">Empezar la run</button>
             </section>
 
             <section id="trainerIntroScreen" class="trainer-intro-screen hidden">
@@ -80,6 +84,11 @@
                 </div>
 
                 <div class="battle-layout">
+                    <aside class="battle-team">
+                        <h2>Tu equipo</h2>
+                        <div id="battleTeamGrid" class="pokemon-grid"></div>
+                    </aside>
+
                     <div class="battle-main">
                         <div class="battle-field">
                             <div class="battle-pokemon player-pokemon">
@@ -88,6 +97,11 @@
                                 <img id="playerBattleSprite" src="" alt="">
 
                                 <h2 id="playerBattleName">Pokémon</h2>
+
+                                <div
+                                    id="playerBattleTypes"
+                                    class="pokemon-types battle-pokemon-types"
+                                ></div>
 
                                 <div class="hp-bar">
                                     <div id="playerHpBar" class="hp-bar-fill"></div>
@@ -107,6 +121,11 @@
 
                                 <h2 id="enemyBattleName">Pokémon</h2>
 
+                                <div
+                                    id="enemyBattleTypes"
+                                    class="pokemon-types battle-pokemon-types"
+                                ></div>
+
                                 <div class="hp-bar">
                                     <div id="enemyHpBar" class="hp-bar-fill"></div>
                                 </div>
@@ -118,11 +137,6 @@
                         <button id="resolveMatchupBtn" class="primary-action">
                             Resolver enfrentamiento
                         </button>
-
-                        <div class="battle-team">
-                            <h2>Tu equipo</h2>
-                            <div id="battleTeamGrid" class="pokemon-grid"></div>
-                        </div>
                     </div>
 
                     <aside class="log-panel">
@@ -191,7 +205,9 @@
 
                     <div class="result-actions">
                         <button id="newRunBtn">NUEVA RUN</button>
-                        <button id="downloadResultBtn" class="secondary-button">DESCARGAR FICHA</button>
+                        <button id="downloadResultBtn" class="secondary-button">
+                            DESCARGAR FICHA
+                        </button>
                     </div>
                 </div>
             </section>

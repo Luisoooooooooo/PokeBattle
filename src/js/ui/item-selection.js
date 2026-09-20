@@ -11,12 +11,19 @@ export function renderItemTeam(pokemonTeam, selectedPokemonId, onPokemonSelect) 
             card.classList.add("selected");
         }
         card.innerHTML = `
-            <img src="${pokemon.sprite}" alt="${formatPokemonName(pokemon.name)}">
-            <div>
+            <img class="item-team-pokemon-sprite" src="${pokemon.sprite}" alt="${formatPokemonName(pokemon.name)}">
+            <div class="item-team-content">
                 <strong>${formatPokemonName(pokemon.name)}</strong>
                 <div class="pokemon-types">${renderTypes(pokemon.types)}</div>
-                <p>${pokemon.item ? pokemon.item.name : "Sin objeto"}</p>
-                ${pokemon.item ? `<button class="remove-item-btn" type="button">Quitar objeto</button>` : ""}
+                ${pokemon.item ? `
+                    <div class="equipped-item">
+                        <img class="equipped-item-sprite" src="${pokemon.item.sprite}" alt="">
+                        <span>${pokemon.item.name}</span>
+                        <button class="remove-item-btn" type="button" aria-label="Quitar ${pokemon.item.name}">×</button>
+                    </div>
+                ` : `
+                    <p class="no-item">Sin objeto</p>
+                `}
             </div>
         `;
         const removeItemBtn = card.querySelector(".remove-item-btn");

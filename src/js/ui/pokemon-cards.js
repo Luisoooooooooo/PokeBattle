@@ -14,12 +14,12 @@ function createPokemonCard(pokemon, selectedPokemon, onToggle) {
             ${renderTypes(pokemon.types)}
         </div>
         <div class="pokemon-stats">
-            <span>HP ${pokemon.maxHp}</span>
-            <span>ATK ${pokemon.attack}</span>
-            <span>ATKSp ${pokemon.specialAttack}</span>
-            <span>DEF ${pokemon.defense}</span>
-            <span>DEFSp ${pokemon.specialDefense}</span>
-            <span>VEL ${pokemon.speed}</span>
+            <span>HP<strong>${pokemon.maxHp}</strong></span>
+            <span>ATK<strong>${pokemon.attack}</strong></span>
+            <span>ATKSp<strong>${pokemon.specialAttack}</strong></span>
+            <span>DEF<strong>${pokemon.defense}</strong></span>
+            <span>DEFSp<strong>${pokemon.specialDefense}</strong></span>
+            <span>VEL<strong>${pokemon.speed}</strong></span>
         </div>
     `;
     card.addEventListener("click", () => {
