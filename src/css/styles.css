@@ -33,6 +33,10 @@
   --type-dark: #705746;
   --type-steel: #b7b7ce;
   --type-fairy: #d685ad;
+  --radius-small: 10px;
+  --radius-card: 16px;
+  --radius-panel: 24px;
+  --radius-pill: 999px;
 }
 
 
@@ -224,7 +228,7 @@ button:disabled {
   padding: 18px;
   overflow: hidden;
   border: 1px solid transparent;
-  border-radius: 22px;
+  border-radius: var(--radius-card);
   background: var(--panel);
   cursor: pointer;
   transition:
@@ -300,7 +304,7 @@ button:disabled {
   align-items: center;
   gap: 5px;
   padding: 5px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--type-color);
   color: #fff;
   font-size: 0.8rem;
@@ -380,7 +384,7 @@ button:disabled {
   min-width: 0;
   padding: 20px;
   border: 1px solid var(--line);
-  border-radius: 24px;
+  border-radius: var(--radius-card);
   background: var(--panel);
 }
 
@@ -406,7 +410,7 @@ button:disabled {
   position: relative;
   padding: 14px;
   border: 1px solid transparent;
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   background: rgba(255, 255, 255, 0.035);
   text-align: center;
   transition:
@@ -561,7 +565,7 @@ button:disabled {
   width: min(540px, 100%);
   padding: 42px;
   border: 1px solid var(--line);
-  border-radius: 24px;
+  border-radius: var(--radius-panel);
   background: var(--panel);
   text-align: center;
 }
@@ -610,7 +614,7 @@ button:disabled {
   margin-bottom: 18px;
   padding: 18px 20px;
   border: 1px solid var(--line);
-  border-radius: 22px;
+  border-radius: var(--radius-panel);
   background: var(--panel);
 }
 
@@ -710,7 +714,7 @@ button:disabled {
   margin-bottom: 14px;
   padding: 28px;
   border: 1px solid var(--line);
-  border-radius: 24px;
+  border-radius: var(--radius-panel);
   background: var(--panel);
 }
 
@@ -764,7 +768,7 @@ button:disabled {
   height: 9px;
   margin: 16px auto;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -876,7 +880,7 @@ button:disabled {
 .battle-team-active-label {
   flex: 0 0 auto;
   padding: 4px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: #141414;
   font-size: 0.55rem;
@@ -917,7 +921,7 @@ button:disabled {
   width: 100%;
   height: 9px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -993,7 +997,7 @@ button:disabled {
   padding: 18px;
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 24px;
+  border-radius: var(--radius-card);
   background: var(--panel);
 }
 
@@ -1280,7 +1284,7 @@ button:disabled {
 }
 
 .battle-log::-webkit-scrollbar-thumb {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.12);
 }
 
@@ -1306,172 +1310,408 @@ button:disabled {
   display: flex;
   align-items: flex-start;
   justify-content: center;
+  width: 100%;
   min-height: calc(100vh - 92px);
+  padding: 8px 0 30px;
 }
 
-.result-container {
-  width: min(1180px, 100%);
+.end-card {
+  width: 100%;
+  margin: 0 auto;
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 24px;
+  border-radius: var(--radius-panel);
   background: var(--panel);
+}
+
+.end-card.is-loss {
+  background: var(--panel);
+}
+
+
+/* =========================================================
+   CABECERA DEL RESULTADO
+   ========================================================= */
+
+.end-hero {
+  padding: 42px 40px 34px;
+  border-bottom: 1px solid var(--line);
   text-align: center;
 }
 
-.result-container > p:first-child {
-  margin: 0;
-  padding-top: 36px;
+.end-kicker {
+  margin-bottom: 14px;
   color: var(--accent);
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   font-weight: 900;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-.result-container > h1 {
-  margin: 10px 20px 8px;
-  font-size: clamp(2.5rem, 5vw, 4rem);
+.end-card.is-loss .end-kicker {
+  color: var(--accent);
+}
+
+.end-trophy {
+  margin: 0 auto 14px;
+  font-size: 2.4rem;
   line-height: 1;
 }
 
-#resultMessage {
-  margin: 0 20px 28px;
-  color: var(--muted);
+.end-hero h2 {
+  margin: 0 0 12px;
+  color: var(--text);
+  font-size: clamp(2.2rem, 3.4vw, 3rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
 }
 
-.result-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  padding: 20px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+.end-summary {
+  margin: 0 auto;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   PUNTUACIÓN Y RANGO
+   ========================================================= */
+
+.end-score-row {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  align-items: stretch;
+  margin-top: 28px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 16px;
   background: var(--panel-3);
 }
 
-.result-stat {
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  min-height: 92px;
-  padding: 14px 12px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.result-stat span,
-.result-rank span,
-.result-mvp span {
-  color: var(--muted);
-  font-size: 0.64rem;
-  font-weight: 900;
-  letter-spacing: 0.09em;
-}
-
-.result-stat strong {
-  margin-top: 9px;
-  font-size: 1.45rem;
-}
-
-.result-rank {
+.end-score-block,
+.end-rank-block {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  padding: 22px 20px 6px;
+  min-height: 76px;
 }
 
-.result-rank span {
-  color: var(--accent);
+.end-score-block {
+  flex-direction: column;
+  min-width: 165px;
+  padding: 12px 20px;
 }
 
-.result-rank strong {
-  color: var(--accent);
-  font-size: 4.5rem;
+.end-score-block span {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.end-score-block strong {
+  color: var(--text);
+  font-size: 1.75rem;
   line-height: 1;
 }
 
-.result-mvp {
-  display: grid;
-  grid-template-columns: auto 70px 1fr;
+.end-rank-block {
+  width: 76px;
+  padding: 8px;
+  border-left: 1px solid var(--line);
+}
+
+.end-rank-block span {
+  display: none;
+}
+
+.end-rank-block strong {
+  display: flex;
   align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #111522;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.end-card.is-loss .end-rank-block strong {
+  color: #111522;
+}
+
+
+/* =========================================================
+   ESTADÍSTICAS
+   ========================================================= */
+
+.end-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  padding: 28px;
+  background: transparent;
+}
+
+.end-stat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 120px;
+  padding: 18px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.025);
+  text-align: center;
+}
+
+.end-stat span {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: 0.07em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.end-stat strong {
+  margin-top: 12px;
+  color: var(--text);
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+
+/* =========================================================
+   EQUIPO FINAL
+   ========================================================= */
+
+.end-team-section {
+  margin: 0 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.end-team-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.end-team-header h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.end-team-header span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+
+/* =========================================================
+   EQUIPO - 6 POKÉMON EN UNA FILA
+   ========================================================= */
+
+.end-team-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
-  margin: 16px 20px 0;
-  padding: 16px 18px;
-  border: 1px solid rgba(255, 207, 58, 0.22);
-  border-radius: 18px;
-  background: rgba(255, 207, 58, 0.055);
-  text-align: left;
 }
 
-.result-mvp span {
+.end-team-card {
+  min-width: 0;
+  padding: 16px 12px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.025);
+  text-align: center;
+}
+
+.end-team-card.fainted {
+  opacity: 0.38;
+  filter: grayscale(0.7);
+}
+
+.end-team-card.mvp {
+  position: relative;
+  border-color: var(--accent);
+}
+
+.end-team-mvp-badge {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  z-index: 2;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 207, 58, 0.4);
+  border-radius: var(--radius-pill);
+  background: rgba(15, 22, 40, 0.94);
   color: var(--accent);
+  font-size: 0.55rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
 
-.result-mvp img {
-  width: 70px;
-  height: 70px;
+.end-team-pokemon-wrap {
+  position: relative;
+  height: 130px;
+}
+
+.end-team-pokemon {
+  display: block;
+  width: 130px;
+  height: 130px;
+  margin: 0 auto;
   object-fit: contain;
   image-rendering: pixelated;
 }
 
-.result-mvp strong {
-  font-size: 1.1rem;
-  text-transform: capitalize;
-}
-
-.result-mvp p {
-  margin: 3px 0 0;
+.end-fainted-badge {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-pill);
+  background: rgba(10, 14, 25, 0.88);
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.55rem;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateX(-50%);
 }
 
-.result-team {
-  padding: 24px 20px 0;
-}
-
-.result-team > h2 {
-  margin-bottom: 16px;
-  font-size: 1rem;
-}
-
-.result-team .pokemon-grid {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.result-team .pokemon-card {
-  padding: 12px;
-  border-radius: 16px;
-  cursor: default;
-}
-
-.result-team .pokemon-card:hover {
-  transform: none;
-}
-
-.result-team .pokemon-card > img {
-  width: 88px;
-  height: 88px;
-}
-
-.result-team .pokemon-card h2 {
+.end-team-card h3 {
   min-height: 0;
-  font-size: 0.78rem;
+  margin: 10px 0 11px;
+  padding: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: capitalize;
+  white-space: nowrap;
 }
 
-.result-actions {
+
+/* =========================================================
+   PS DEL EQUIPO
+   ========================================================= */
+
+.end-team-hp {
+  display: grid;
+  gap: 7px;
+}
+
+.end-team-hp-bar {
+  width: 100%;
+  height: 7px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.end-team-hp-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--success);
+}
+
+.end-team-hp small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   OBJETO DEL EQUIPO
+   ========================================================= */
+
+.end-team-item {
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 26px 20px 28px;
+  gap: 6px;
+  min-width: 0;
+  min-height: 30px;
+  margin-top: 9px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.result-actions button {
-  min-width: 190px;
+.end-team-item img {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
+.end-team-item span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.end-team-item.empty {
+  color: var(--muted);
+}
+
+.end-team-kos {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+
+
+/* =========================================================
+   ACCIONES
+   ========================================================= */
+
+.end-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 30px 28px 34px;
+}
+
+.end-actions button {
+  min-width: 210px;
+  padding: 15px 22px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+}
 
 /* =========================================================
    TABLET
@@ -1480,10 +1720,6 @@ button:disabled {
 @media (max-width: 1200px) {
   .pokemon-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .result-team .pokemon-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -1512,9 +1748,26 @@ button:disabled {
     height: 420px;
     max-height: 420px;
   }
+}
 
-  .result-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+
+/* =========================================================
+   RESULTADO — TABLET
+   ========================================================= */
+
+@media (max-width: 1100px) {
+  .end-team-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .end-team-pokemon-wrap {
+    height: 110px;
+  }
+
+  .end-team-pokemon {
+    width: 110px;
+    height: 110px;
   }
 }
 
@@ -1620,43 +1873,57 @@ button:disabled {
     height: 170px;
   }
 
-  .result-stats {
+  .result-screen {
+    padding-top: 0;
+  }
+
+  .end-card {
+    width: 100%;
+  }
+
+  .end-hero {
+    padding: 24px 18px 20px;
+  }
+
+  .end-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
     padding: 14px;
   }
 
-  .result-rank {
+  .end-team-section {
+    margin: 0 14px;
+    padding: 12px;
+  }
+
+  .end-team-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .end-team-card {
+    padding: 8px 5px 9px;
+  }
+
+  .end-team-pokemon-wrap {
+    height: 90px;
+  }
+
+  .end-team-pokemon {
+    width: 90px;
+    height: 90px;
+  }
+
+  .end-team-header span {
+    display: none;
+  }
+
+  .end-actions {
     flex-direction: column;
-    gap: 4px;
+    padding: 16px 14px 20px;
   }
 
-  .result-rank strong {
-    font-size: 4rem;
-  }
-
-  .result-mvp {
-    grid-template-columns: 60px 1fr;
-  }
-
-  .result-mvp > span {
-    grid-column: 1 / -1;
-  }
-
-  .result-mvp img {
-    width: 60px;
-    height: 60px;
-  }
-
-  .result-team .pokemon-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .result-actions {
-    flex-direction: column;
-  }
-
-  .result-actions button {
+  .end-actions button {
     width: 100%;
   }
 }
@@ -1668,9 +1935,25 @@ button:disabled {
 
 @media (max-width: 420px) {
   .pokemon-grid,
-  .result-team .pokemon-grid,
   .item-team-grid,
   .item-offer-grid {
     grid-template-columns: 1fr;
+  }
+
+  .end-team-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .end-team-pokemon-wrap {
+    height: 58px;
+  }
+
+  .end-team-pokemon {
+    width: 58px;
+    height: 58px;
+  }
+
+  .end-team-card h3 {
+    font-size: 0.62rem;
   }
 }
