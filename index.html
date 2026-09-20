@@ -39,11 +39,43 @@
                 </div>
                 <button id="startRunBtn">Empezar la run</button>
             </section>
+            <section id="trainerDefeatedScreen" class="trainer-defeated-screen hidden">
+                <div class="trainer-defeated">
+                    <p>ENTRENADOR DERROTADO</p>
+
+                    <h1 id="defeatedTrainerName">ENTRENADOR</h1>
+
+                    <button id="continueTrainerBtn">
+                        CONTINUAR
+                    </button>
+                </div>
+            </section>
+            <section id="trainerIntroScreen" class="trainer-intro-screen hidden">
+                <div class="trainer-intro">
+                    <p>UN ENTRENADOR QUIERE COMBATIR</p>
+
+                    <img
+                        id="trainerIntroSprite"
+                        class="trainer-intro-sprite"
+                        src=""
+                        alt=""
+                    >
+
+                    <h1 id="trainerIntroName">ENTRENADOR</h1>
+
+                    <button id="startTrainerBattleBtn">
+                        ¡A COMBATIR!
+                    </button>
+                </div>
+            </section>
             <section id="battleScreen" class="battle-screen hidden">
                 <div class="battle-header">
                     <div>
                         <p>RUN EN CURSO</p>
-                        <h1 id="trainerName">Entrenador</h1>
+                        <div class="trainer-info">
+                            <img id="trainerSprite" src="" alt="">
+                            <h1 id="trainerName">Entrenador</h1>
+                        </div>
                     </div>
                     <div id="enemyPokeballs" class="enemy-pokeballs"></div>
                 </div>

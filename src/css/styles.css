@@ -233,6 +233,92 @@ main {
   transform: scale(0.85);
 }
 
+.trainer-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trainer-info img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.trainer-intro-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.trainer-intro-screen.hidden {
+  display: none;
+}
+
+.trainer-intro {
+  width: min(500px, 100%);
+  text-align: center;
+}
+
+.trainer-intro > p {
+  margin-bottom: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.trainer-intro-sprite {
+  display: block;
+  width: 180px;
+  height: 190px;
+  margin: 0 auto 20px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.trainer-intro h1 {
+  margin-bottom: 24px;
+  text-transform: uppercase;
+}
+
+.trainer-intro button {
+  width: 100%;
+}
+
+.trainer-defeated-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.trainer-defeated-screen.hidden {
+  display: none;
+}
+
+.trainer-defeated {
+  width: min(500px, 100%);
+  text-align: center;
+}
+
+.trainer-defeated > p {
+  margin-bottom: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.trainer-defeated h1 {
+  margin-bottom: 24px;
+  text-transform: uppercase;
+}
+
+.trainer-defeated button {
+  width: 100%;
+}
+
 @media (max-width: 800px) {
   .pokemon-grid {
     grid-template-columns: repeat(2, 1fr);

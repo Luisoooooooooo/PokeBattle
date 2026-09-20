@@ -2,6 +2,7 @@ import { getUniqueRandomPokemon, getRandomItemOffer } from "./api/pokeapi.js";
 import { renderPokemonCards } from "./ui/pokemon-cards.js";
 import { renderItemTeam, renderItemOffer } from "./ui/item-selection.js";
 import { resolveMatchup } from "./game/battle.js";
+import { getRandomTrainers } from "./data/trainers.js";
 
 const TEAM_SIZE = 6;
 const TOTAL_TRAINERS = 5;
@@ -14,6 +15,7 @@ let activeEnemyPokemon = null;
 let activePokemon = null;
 let playerPokemonNeedsEntry = true;
 let currentTrainer = 1;
+let runTrainers = [];
 
 
 function updateSelectionUI() {
@@ -80,6 +82,10 @@ async function init() {
         continueBtn.addEventListener("click", confirmTeam);
         const startRunBtn = document.querySelector("#startRunBtn");
         startRunBtn.addEventListener("click", startRun);
+        const startTrainerBattleBtn = document.querySelector("#startTrainerBattleBtn");
+        startTrainerBattleBtn.addEventListener("click", startTrainerBattle);
+        const continueTrainerBtn = document.querySelector("#continueTrainerBtn");
+        continueTrainerBtn.addEventListener("click", startNextTrainer);
         const resolveMatchupBtn = document.querySelector("#resolveMatchupBtn");
         resolveMatchupBtn.addEventListener("click", handleResolveMatchup);
     } catch (error) {
@@ -151,22 +157,32 @@ function hasLivingEnemyPokemon() {
 }
 
 async function startNextTrainer() {
+    document.querySelector("#trainerDefeatedScreen").classList.add("hidden");
+
     currentTrainer++;
     updateTrainerUI();
+
     enemyTeam = await getUniqueRandomPokemon(6, 2);
     activeEnemyPokemon = enemyTeam[0];
+
     const enemyPokeballs = document.querySelector("#enemyPokeballs");
     enemyPokeballs.innerHTML = "";
+
     enemyTeam.forEach(() => {
         const pokeball = document.createElement("span");
         pokeball.classList.add("enemy-pokeball");
         pokeball.textContent = "●";
         enemyPokeballs.appendChild(pokeball);
     });
+
     updateBattlePokemonUI(activeEnemyPokemon, "enemy");
+
     addBattleLogMessage(`Comienza el combate contra el Entrenador ${currentTrainer}.`);
     addBattleLogMessage(`${activeEnemyPokemon.name} entra al combate.`);
+
     document.querySelector("#resolveMatchupBtn").disabled = false;
+
+    showTrainerIntro();
 }
 
 async function handleResolveMatchup() {
@@ -255,7 +271,12 @@ async function handleResolveMatchup() {
                 resolveMatchupBtn.disabled = true;
                 if (currentTrainer < TOTAL_TRAINERS) {
                     await wait(1000);
-                    await startNextTrainer();
+
+                    const trainer = runTrainers[currentTrainer - 1];
+
+                    document.querySelector("#defeatedTrainerName").textContent = trainer.name;
+                    document.querySelector("#battleScreen").classList.add("hidden");
+                    document.querySelector("#trainerDefeatedScreen").classList.remove("hidden");
                 } else {
                     addBattleLogMessage("¡Has derrotado a los 5 entrenadores!");
                 }
@@ -322,14 +343,35 @@ function renderBattleTeam() {
 
 function updateTrainerUI() {
     const trainerName = document.querySelector("#trainerName");
-    trainerName.textContent = `Entrenador ${currentTrainer} / ${TOTAL_TRAINERS}`;
+    const trainerSprite = document.querySelector("#trainerSprite");
+    const trainer = runTrainers[currentTrainer - 1];
+    trainerName.textContent = `${trainer.name} · ${currentTrainer} / ${TOTAL_TRAINERS}`;
+    trainerSprite.src = trainer.sprite;
+    trainerSprite.alt = trainer.name;
+}
+
+function startTrainerBattle() {
+    document.querySelector("#trainerIntroScreen").classList.add("hidden");
+    document.querySelector("#battleScreen").classList.remove("hidden");
+}
+
+function showTrainerIntro() {
+    const trainer = runTrainers[currentTrainer - 1];
+
+    document.querySelector("#trainerIntroSprite").src = trainer.sprite;
+    document.querySelector("#trainerIntroSprite").alt = trainer.name;
+    document.querySelector("#trainerIntroName").textContent = trainer.name;
+
+    document.querySelector("#trainerIntroScreen").classList.remove("hidden");
+    document.querySelector("#battleScreen").classList.add("hidden");
 }
 
 async function startRun() {
     document.querySelector("#itemScreen").classList.add("hidden");
-    document.querySelector("#battleScreen").classList.remove("hidden");
     currentTrainer = 1;
+    runTrainers = getRandomTrainers(TOTAL_TRAINERS);
     updateTrainerUI();
+    showTrainerIntro();
     activePokemon = selectedPokemon[0];
     playerPokemonNeedsEntry = true;
     document.querySelector("#playerBattleSprite").src = activePokemon.sprite;
