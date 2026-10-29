@@ -44,7 +44,7 @@ async function confirmTeam() {
     if (selectedPokemon.length !== TEAM_SIZE) {
         return;
     }
-    itemOffer = await getRandomItemOffer();
+    itemOffer = await withLoading("Preparando los objetos...", getRandomItemOffer);
     selectedItemPokemonId = selectedPokemon[0]?.id ?? null;
     document.querySelector(".selection").classList.add("hidden");
     document.querySelector("#itemScreen").classList.remove("hidden");
@@ -71,27 +71,77 @@ function equipItem(item) {
 }
 
 async function init() {
-    try {
-        pokemonOffer = await getUniqueRandomPokemon(12, 2);
-        renderPokemonCards(pokemonOffer, selectedPokemon, togglePokemonSelection);
-        updateSelectionUI();
-        const continueBtn = document.querySelector("#continueBtn");
-        continueBtn.addEventListener("click", confirmTeam);
-        const startRunBtn = document.querySelector("#startRunBtn");
-        startRunBtn.addEventListener("click", startRun);
-        const startTrainerBattleBtn = document.querySelector("#startTrainerBattleBtn");
-        startTrainerBattleBtn.addEventListener("click", startTrainerBattle);
-        const continueTrainerBtn = document.querySelector("#continueTrainerBtn");
-        continueTrainerBtn.addEventListener("click", startNextTrainer);
-        const resolveMatchupBtn = document.querySelector("#resolveMatchupBtn");
-        resolveMatchupBtn.addEventListener("click", handleResolveMatchup);
-        const newRunBtn = document.querySelector("#newRunBtn");
-        newRunBtn.addEventListener("click", startNewRun);
-        const downloadResultBtn = document.querySelector("#downloadResultBtn");
-        downloadResultBtn.addEventListener("click", downloadResultCard);
-    } catch (error) {
-        console.error(error);
+    pokemonOffer = await withLoading("Buscando Pokémon salvajes...", () => getUniqueRandomPokemon(12, 2));
+    renderPokemonCards(pokemonOffer, selectedPokemon, togglePokemonSelection);
+    updateSelectionUI();
+    const continueBtn = document.querySelector("#continueBtn");
+    continueBtn.addEventListener("click", confirmTeam);
+    const startRunBtn = document.querySelector("#startRunBtn");
+    startRunBtn.addEventListener("click", startRun);
+    const startTrainerBattleBtn = document.querySelector("#startTrainerBattleBtn");
+    startTrainerBattleBtn.addEventListener("click", startTrainerBattle);
+    const continueTrainerBtn = document.querySelector("#continueTrainerBtn");
+    continueTrainerBtn.addEventListener("click", startNextTrainer);
+    const resolveMatchupBtn = document.querySelector("#resolveMatchupBtn");
+    resolveMatchupBtn.addEventListener("click", handleResolveMatchup);
+    const newRunBtn = document.querySelector("#newRunBtn");
+    newRunBtn.addEventListener("click", startNewRun);
+    const downloadResultBtn = document.querySelector("#downloadResultBtn");
+    downloadResultBtn.addEventListener("click", downloadResultCard);
+}
+
+function showLoading(message) {
+    document.querySelector("#loadingScreen").classList.remove("hidden", "is-error");
+    document.querySelector("#loadingSpinner").classList.remove("hidden");
+    document.querySelector("#loadingKicker").textContent = "CARGANDO";
+    document.querySelector("#loadingMessage").textContent = message;
+    document.querySelector("#retryBtn").classList.add("hidden");
+}
+
+function hideLoading() {
+    document.querySelector("#loadingScreen").classList.add("hidden");
+}
+
+function waitForRetry() {
+    document.querySelector("#loadingScreen").classList.add("is-error");
+    document.querySelector("#loadingSpinner").classList.add("hidden");
+    document.querySelector("#loadingKicker").textContent = "ERROR DE CONEXIÓN";
+    document.querySelector("#loadingMessage").textContent = "No se pudo conectar con PokéAPI. Comprueba tu conexión e inténtalo de nuevo.";
+    const retryBtn = document.querySelector("#retryBtn");
+    retryBtn.classList.remove("hidden");
+    retryBtn.focus();
+    return new Promise(resolve => {
+        retryBtn.addEventListener("click", resolve, { once: true });
+    });
+}
+
+// Muestra la pantalla de carga mientras se ejecuta la tarea y, si falla, deja reintentarla
+async function withLoading(message, task) {
+    while (true) {
+        showLoading(message);
+        try {
+            const result = await task();
+            hideLoading();
+            return result;
+        } catch (error) {
+            console.error(error);
+            await waitForRetry();
+        }
     }
+}
+
+async function loadEnemyTeam() {
+    enemyTeam = await withLoading("Buscando al siguiente rival...", () => getUniqueRandomPokemon(6, 2));
+    activeEnemyPokemon = enemyTeam[0];
+    const enemyPokeballs = document.querySelector("#enemyPokeballs");
+    enemyPokeballs.innerHTML = "";
+    enemyTeam.forEach(() => {
+        const pokeball = document.createElement("span");
+        pokeball.classList.add("enemy-pokeball");
+        pokeball.textContent = "●";
+        enemyPokeballs.appendChild(pokeball);
+    });
+    updateBattlePokemonUI(activeEnemyPokemon, "enemy");
 }
 
 function wait(milliseconds) {
@@ -235,20 +285,10 @@ function hasLivingEnemyPokemon() {
 }
 
 async function startNextTrainer() {
+    await loadEnemyTeam();
     document.querySelector("#trainerDefeatedScreen").classList.add("hidden");
     currentTrainer++;
     updateTrainerUI();
-    enemyTeam = await getUniqueRandomPokemon(6, 2);
-    activeEnemyPokemon = enemyTeam[0];
-    const enemyPokeballs = document.querySelector("#enemyPokeballs");
-    enemyPokeballs.innerHTML = "";
-    enemyTeam.forEach(() => {
-        const pokeball = document.createElement("span");
-        pokeball.classList.add("enemy-pokeball");
-        pokeball.textContent = "●";
-        enemyPokeballs.appendChild(pokeball);
-    });
-    updateBattlePokemonUI(activeEnemyPokemon, "enemy");
     addBattleLogMessage(`Comienza el combate contra el Entrenador ${currentTrainer}.`, "important");
     addBattleLogMessage(`${formatPokemonName(activeEnemyPokemon.name)} entra al combate.`);
     document.querySelector("#resolveMatchupBtn").disabled = false;
@@ -781,26 +821,16 @@ function startNewRun() {
 }
 
 async function startRun() {
+    await loadEnemyTeam();
     document.querySelector("#itemScreen").classList.add("hidden");
     currentTrainer = 1;
     runTrainers = getRandomTrainers(TOTAL_TRAINERS);
     updateTrainerUI();
-    showTrainerIntro();
     activePokemon = selectedPokemon[0];
     playerPokemonNeedsEntry = true;
     updateBattlePokemonUI(activePokemon, "player");
     renderBattleTeam();
-    enemyTeam = await getUniqueRandomPokemon(6, 2);
-    activeEnemyPokemon = enemyTeam[0];
-    const enemyPokeballs = document.querySelector("#enemyPokeballs");
-    enemyPokeballs.innerHTML = "";
-    enemyTeam.forEach(() => {
-        const pokeball = document.createElement("span");
-        pokeball.classList.add("enemy-pokeball");
-        pokeball.textContent = "●";
-        enemyPokeballs.appendChild(pokeball);
-    });
-    updateBattlePokemonUI(activeEnemyPokemon, "enemy");
+    showTrainerIntro();
 }
 
 init();

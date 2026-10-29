@@ -139,6 +139,14 @@
                 </div>
             </section>
         </main>
+        <div id="loadingScreen" class="loading-screen hidden" role="status" aria-live="polite">
+            <div class="loading-panel">
+                <div id="loadingSpinner" class="loading-spinner" aria-hidden="true"></div>
+                <p id="loadingKicker" class="loading-kicker">CARGANDO</p>
+                <h2 id="loadingMessage">Preparando la run...</h2>
+                <button id="retryBtn" class="hidden">REINTENTAR</button>
+            </div>
+        </div>
         <script type="module" src="./src/js/main.js"></script>
     </body>
 </html>
