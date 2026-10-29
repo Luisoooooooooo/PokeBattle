@@ -697,7 +697,7 @@ button:disabled {
 
 .battle-layout {
   display: grid;
-  grid-template-columns: 480px minmax(0, 1fr) 480px;
+  grid-template-columns: 360px minmax(0, 1fr) 360px;
   gap: 18px;
   align-items: start;
 }
