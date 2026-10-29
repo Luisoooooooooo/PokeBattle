@@ -494,30 +494,30 @@ function renderBattleTeam() {
             </span>
         `).join("");
         const itemHtml = pokemon.item ? `
-            <div class="battle-team-item">
+            <div class="battle-team-item" title="${pokemon.item.name}">
                 <img src="${pokemon.item.sprite}" alt="">
                 <span>${pokemon.item.name}</span>
             </div>
-        ` : `
-            <div class="battle-team-item empty">
-                <span>Sin objeto</span>
-            </div>
-        `;
+        ` : "";
+        if (pokemon === activePokemon) {
+            card.setAttribute("aria-current", "true");
+        }
         card.innerHTML = `
             <img class="battle-team-sprite" src="${pokemon.sprite}" alt="${formatPokemonName(pokemon.name)}">
             <div class="battle-team-card-info">
                 <div class="battle-team-name-row">
                     <h2>${formatPokemonName(pokemon.name)}</h2>
-                    ${pokemon === activePokemon ? '<span class="battle-team-active-label">En combate</span>' : ""}
-                </div>
-                <div class="pokemon-types">${typesHtml}</div>
-                <div class="battle-team-hp">
-                    <div class="battle-team-hp-bar">
-                        <span class="${hpClass}" style="width: ${hpPercentage}%"></span>
+                    <div class="battle-team-hp">
+                        <small>${pokemon.currentHp} / ${pokemon.maxHp} PS</small>
                     </div>
-                    <small>${pokemon.currentHp} / ${pokemon.maxHp} PS</small>
                 </div>
-                ${itemHtml}
+                <div class="battle-team-meta-row">
+                    <div class="pokemon-types">${typesHtml}</div>
+                    ${itemHtml}
+                </div>
+                <div class="battle-team-hp-bar">
+                    <span class="${hpClass}" style="width: ${hpPercentage}%"></span>
+                </div>
             </div>
         `;
         if (!pokemon.fainted) {

@@ -779,7 +779,7 @@ button:disabled {
 
 .battle-layout {
   display: grid;
-  grid-template-columns: 340px minmax(0, 1fr) 360px;
+  grid-template-columns: 360px minmax(0, 1fr) 340px;
   gap: 20px;
   align-items: stretch;
 }
@@ -795,7 +795,7 @@ button:disabled {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  min-height: 480px;
+  min-height: 440px;
   padding: 36px 28px;
   border-radius: var(--radius-panel);
   background: var(--surface);
@@ -892,7 +892,7 @@ button:disabled {
 
 .battle-team > h2,
 .log-panel > h2 {
-  margin: 4px 4px 16px;
+  margin: 0 4px 14px;
   font-size: var(--fs-headline);
   font-weight: 700;
   line-height: 1.25;
@@ -901,16 +901,17 @@ button:disabled {
 .battle-team .pokemon-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
+/* Tarjeta compacta en tres líneas: nombre y PS, tipos y objeto, barra */
 .battle-team .pokemon-card {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
+  grid-template-columns: 52px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px 12px 10px;
-  border-radius: var(--radius-card);
+  gap: 10px;
+  padding: 10px 14px 10px 8px;
+  border-radius: 16px;
   background: var(--surface-2);
 }
 
@@ -934,8 +935,8 @@ button:disabled {
 
 .battle-team .battle-team-sprite {
   display: block;
-  width: 64px;
-  height: 64px;
+  width: 52px;
+  height: 52px;
   margin: 0;
   object-fit: contain;
   image-rendering: pixelated;
@@ -945,17 +946,26 @@ button:disabled {
   min-width: 0;
 }
 
-.battle-team-name-row {
+.battle-team-name-row,
+.battle-team-meta-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   min-width: 0;
 }
 
+.battle-team-name-row {
+  margin-bottom: 4px;
+}
+
+.battle-team-meta-row {
+  margin-bottom: 8px;
+}
+
 .battle-team .pokemon-card h2 {
   min-width: 0;
-  margin: 0 0 6px;
+  margin: 0;
   overflow: hidden;
   font-size: var(--fs-body);
   font-weight: 700;
@@ -965,22 +975,16 @@ button:disabled {
   white-space: nowrap;
 }
 
-.battle-team-active-label {
-  flex: 0 0 auto;
-  color: var(--accent-text);
-  font-size: var(--fs-caption);
-  font-weight: 700;
-}
-
 .battle-team .pokemon-card .pokemon-types {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   justify-content: flex-start;
   min-height: 0;
   gap: 4px;
-  margin-bottom: 8px;
 }
 
 .battle-team .pokemon-card .type {
-  padding: 4px 8px 4px 6px;
+  padding: 3px 7px 3px 6px;
   font-size: 0.75rem;
 }
 
@@ -993,15 +997,12 @@ button:disabled {
 }
 
 .battle-team-hp {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
+  flex: 0 0 auto;
 }
 
 .battle-team-hp-bar {
   width: 100%;
-  height: 6px;
+  height: 5px;
   overflow: hidden;
   border-radius: var(--radius-pill);
   background: var(--surface-3);
@@ -1029,18 +1030,18 @@ button:disabled {
 .battle-team-item {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 4px;
   min-width: 0;
-  margin-top: 6px;
   color: var(--item);
   font-size: var(--fs-caption);
   font-weight: 600;
 }
 
 .battle-team-item img {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   object-fit: contain;
   image-rendering: pixelated;
 }
@@ -1051,11 +1052,6 @@ button:disabled {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-.battle-team-item.empty {
-  color: var(--text-3);
-}
-
 
 /* =========================================================
    REGISTRO DE COMBATE
@@ -1561,7 +1557,7 @@ button:disabled {
 
 @media (max-width: 1280px) {
   .battle-layout {
-    grid-template-columns: 300px minmax(0, 1fr) 320px;
+    grid-template-columns: 330px minmax(0, 1fr) 300px;
   }
 
   .battle-pokemon > img {
