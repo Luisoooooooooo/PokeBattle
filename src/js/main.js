@@ -74,6 +74,7 @@ let rewardContinuation = null;
 let itemsContinuation = null;
 let routeBattle = null;
 let shopProducts = [];
+let isBattleBusy = false;
 
 function showScreen(selector) {
     document.querySelectorAll("main > section").forEach(section => {
@@ -452,7 +453,35 @@ async function startNextTrainer() {
     showTrainerIntro();
 }
 
+// El botón dice en qué punto está el combate: resolviendo, esperando un cambio o listo
+function updateResolveButton() {
+    const resolveMatchupBtn = document.querySelector("#resolveMatchupBtn");
+    const needsChoice = !isBattleBusy && !activePokemon && hasLivingPlayerPokemon();
+    if (isBattleBusy) {
+        resolveMatchupBtn.textContent = "Combatiendo…";
+    } else if (needsChoice) {
+        resolveMatchupBtn.textContent = "Elige otro Pokémon";
+    } else {
+        resolveMatchupBtn.textContent = "Resolver enfrentamiento";
+    }
+    document.querySelector(".battle-team").classList.toggle("needs-choice", needsChoice);
+}
+
 async function handleResolveMatchup() {
+    if (!activePokemon || !activeEnemyPokemon || isBattleBusy) {
+        return;
+    }
+    isBattleBusy = true;
+    updateResolveButton();
+    try {
+        await resolveMatchupFlow();
+    } finally {
+        isBattleBusy = false;
+        updateResolveButton();
+    }
+}
+
+async function resolveMatchupFlow() {
     if (!activePokemon || !activeEnemyPokemon) {
         return;
     }
@@ -637,6 +666,7 @@ function updateBattleTeamPokemonHp(pokemon, currentHp) {
 function renderBattleTeam() {
     const battleTeamGrid = document.querySelector("#battleTeamGrid");
     battleTeamGrid.innerHTML = "";
+    updateResolveButton();
     selectedPokemon.forEach(pokemon => {
         const card = document.createElement("article");
         const hpPercentage = Math.max(0, (pokemon.currentHp / pokemon.maxHp) * 100);

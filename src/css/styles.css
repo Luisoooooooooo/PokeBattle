@@ -2452,3 +2452,371 @@ button:disabled {
   background: var(--surface);
   transform: none;
 }
+
+
+/* =========================================================
+   PANTALLAS TÁCTILES
+   ========================================================= */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+.pokemon-card,
+.item-team-card,
+.item-card,
+.route-option {
+  touch-action: manipulation;
+}
+
+/* Sin ratón, el hover se queda pegado tras tocar: solo vale la respuesta al pulsar */
+@media (hover: none) {
+  .pokemon-card:hover,
+  .item-team-card:hover,
+  .item-card:not(.used):hover,
+  .mode-card:hover:not(:disabled),
+  .route-option:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .pokemon-card:not(.selected):not(.active):hover,
+  .item-team-card:not(.selected):hover,
+  .item-card:not(.used):hover,
+  .route-option:hover:not(:disabled) {
+    background: var(--surface);
+  }
+
+  .battle-team .pokemon-card:not(.active):hover {
+    background: var(--surface-2);
+  }
+
+  button:hover:not(:disabled) {
+    background: var(--accent);
+  }
+
+  .secondary-button:hover:not(:disabled),
+  .generation-chip:not(.selected):hover:not(:disabled) {
+    background: var(--surface-2);
+  }
+
+  .back-button:hover:not(:disabled) {
+    background: transparent;
+    text-decoration: none;
+  }
+}
+
+.battle-team.needs-choice {
+  box-shadow: inset 0 0 0 2px var(--accent-text);
+}
+
+.battle-team.needs-choice .battle-team-card:not(.fainted) {
+  animation: choice-pulse 1.6s var(--ease) infinite;
+}
+
+@keyframes choice-pulse {
+  50% {
+    background: var(--surface-3);
+  }
+}
+
+
+/* =========================================================
+   MÓVIL: COMBATE, OBJETOS Y BARRAS FIJAS
+   ========================================================= */
+
+@media (max-width: 700px) {
+  main {
+    padding-top: calc(20px + env(safe-area-inset-top));
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  .selection-header h1,
+  .trainer-intro h1,
+  .trainer-defeated h1,
+  .end-hero h1 {
+    font-size: clamp(2rem, 9vw, 2.5rem);
+  }
+
+  .selection-header p {
+    font-size: var(--fs-body);
+  }
+
+  .screen-header {
+    margin-bottom: 20px;
+  }
+
+  /* Objetivos táctiles de al menos 44px */
+  .back-button {
+    min-height: 44px;
+    margin-bottom: 8px;
+  }
+
+  .generation-chip,
+  .refresh-offer-btn,
+  .generation-actions button {
+    min-height: 40px;
+  }
+
+  .remove-item-btn {
+    width: 32px;
+    min-height: 32px;
+    height: 32px;
+  }
+
+  .selection-toolbar {
+    bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  /* --- Combate --- */
+
+  .battle-header {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    margin-bottom: 14px;
+  }
+
+  .trainer-info {
+    flex: 1 1 auto;
+    gap: 10px;
+  }
+
+  .trainer-info img {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+  }
+
+  .trainer-info h1 {
+    font-size: var(--fs-headline);
+  }
+
+  .trainer-info p {
+    font-size: var(--fs-caption);
+  }
+
+  .enemy-pokeballs {
+    gap: 6px;
+  }
+
+  .enemy-pokeball {
+    width: 10px;
+    height: 10px;
+  }
+
+  .battle-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .battle-main {
+    display: block;
+  }
+
+  .battle-field {
+    padding: 18px 10px 20px;
+    border-radius: var(--radius-card);
+  }
+
+  .battle-pokemon > p:first-child {
+    margin-bottom: 0;
+  }
+
+  .battle-pokemon > img {
+    height: 124px;
+    margin-bottom: 4px;
+  }
+
+  .hp-bar {
+    margin: 12px auto 6px;
+  }
+
+  /* El botón de combate queda siempre a mano, encima de la barra del sistema */
+  .primary-action {
+    position: fixed;
+    right: 16px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 16px;
+    z-index: 20;
+    width: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  }
+
+  .primary-action:disabled {
+    background: var(--surface-3);
+    color: var(--text-2);
+  }
+
+  /* Tu equipo: tira horizontal compacta justo debajo del campo */
+  .battle-team {
+    padding: 14px 0 14px 14px;
+    border-radius: var(--radius-card);
+  }
+
+  .battle-team > h2,
+  .log-panel > h2 {
+    margin: 0 0 10px;
+    font-size: var(--fs-body);
+  }
+
+  .battle-team .pokemon-grid {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    padding-right: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .battle-team .pokemon-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .battle-team .pokemon-card {
+    flex: 0 0 148px;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 8px;
+    padding: 10px 10px 10px 6px;
+    scroll-snap-align: start;
+  }
+
+  .battle-team .battle-team-sprite {
+    width: 36px;
+    height: 36px;
+  }
+
+  .battle-team .pokemon-card h2 {
+    font-size: 0.875rem;
+  }
+
+  .battle-team-name-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    margin-bottom: 6px;
+  }
+
+  .battle-team-hp small {
+    font-size: 0.75rem;
+  }
+
+  .battle-team-meta-row {
+    display: none;
+  }
+
+  /* Registro siempre visible bajo el equipo */
+  .log-panel {
+    height: 280px;
+    padding: 14px;
+    border-radius: var(--radius-card);
+  }
+
+  /* Lo último del registro no queda debajo del botón fijo */
+  .battle-log {
+    padding-bottom: 72px;
+  }
+
+  /* --- Objetos y mochila --- */
+
+  #itemScreen .item-header > button {
+    position: fixed;
+    right: 16px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: 16px;
+    z-index: 20;
+    width: auto;
+    min-height: 52px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  }
+
+  .item-layout {
+    gap: 28px;
+  }
+
+  /* El equipo queda fijo arriba mientras se baja por los objetos */
+  .item-layout > .item-section:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin: 0 -16px;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 12px;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .item-section > h2 {
+    margin-bottom: 12px;
+    font-size: var(--fs-headline);
+  }
+
+  .item-team-grid {
+    display: flex;
+    gap: 8px;
+    margin: 0 -16px;
+    padding: 0 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .item-team-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .item-team-card {
+    flex: 0 0 136px;
+    padding: 10px;
+  }
+
+  .item-team-card > .item-team-pokemon-sprite {
+    width: 56px;
+    height: 56px;
+  }
+
+  .item-team-card strong {
+    font-size: 0.9375rem;
+  }
+
+  .item-team-card .pokemon-types {
+    display: none;
+  }
+
+  .item-team-hp {
+    margin-top: 6px;
+  }
+
+  .equipped-item,
+  .no-item {
+    min-height: 32px;
+    margin-top: 6px;
+  }
+
+  .equipped-item-sprite {
+    width: 24px;
+    height: 24px;
+  }
+
+  .item-card {
+    padding: 14px 10px;
+  }
+
+  .item-card > img {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 6px;
+  }
+
+  /* --- Barras fijas de pantallas de aventura --- */
+
+  .adventure-screen .selection-toolbar {
+    bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+}
