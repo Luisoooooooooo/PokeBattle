@@ -73,10 +73,13 @@ function addPokemonTypesToCount(pokemon, typeCounts) {
     });
 }
 
-function getRandomUntriedIds(amount, triedIds) {
+// Sin idPool se elige entre todos los IDs del 1 a MAX_POKEMON_ID
+function getRandomUntriedIds(amount, triedIds, idPool = null) {
+    const poolSize = idPool ? idPool.length : MAX_POKEMON_ID;
     const ids = [];
-    while (ids.length < amount && triedIds.size < MAX_POKEMON_ID) {
-        const randomId = Math.floor(Math.random() * MAX_POKEMON_ID) + 1;
+    while (ids.length < amount && triedIds.size < poolSize) {
+        const randomIndex = Math.floor(Math.random() * poolSize);
+        const randomId = idPool ? idPool[randomIndex] : randomIndex + 1;
         if (triedIds.has(randomId)) {
             continue;
         }
@@ -86,13 +89,13 @@ function getRandomUntriedIds(amount, triedIds) {
     return ids;
 }
 
-export async function getUniqueRandomPokemon(count, maxPerType = null) {
+export async function getUniqueRandomPokemon(count, maxPerType = null, idPool = null) {
     const pokemonMap = new Map();
     const typeCounts = {};
     const triedIds = new Set();
     while (pokemonMap.size < count) {
         // Se piden el doble de los que faltan porque algunos se descartan por el límite de tipos
-        const batchIds = getRandomUntriedIds((count - pokemonMap.size) * 2, triedIds);
+        const batchIds = getRandomUntriedIds((count - pokemonMap.size) * 2, triedIds, idPool);
         if (batchIds.length === 0) {
             throw new Error("No hay suficientes Pokémon disponibles");
         }

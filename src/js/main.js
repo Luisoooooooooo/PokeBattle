@@ -4,6 +4,7 @@ import { renderItemTeam, renderItemOffer } from "./ui/item-selection.js";
 import { resolveMatchup } from "./game/battle.js";
 import { getRandomTrainers } from "./data/trainers.js";
 import { formatPokemonName, formatTypeName } from "./utils/formatters.js";
+import { FINAL_EVOLUTION_IDS } from "./data/final-evolutions.js";
 
 const TEAM_SIZE = 6;
 const TOTAL_TRAINERS = 5;
@@ -71,7 +72,7 @@ function equipItem(item) {
 }
 
 async function init() {
-    pokemonOffer = await withLoading("Buscando Pokémon salvajes...", () => getUniqueRandomPokemon(12, 2));
+    pokemonOffer = await withLoading("Buscando Pokémon salvajes...", () => getUniqueRandomPokemon(12, 2, FINAL_EVOLUTION_IDS));
     renderPokemonCards(pokemonOffer, selectedPokemon, togglePokemonSelection);
     updateSelectionUI();
     const continueBtn = document.querySelector("#continueBtn");
