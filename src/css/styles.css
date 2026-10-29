@@ -1643,11 +1643,26 @@ button:disabled {
   text-decoration: underline;
 }
 
+.generation-filter {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin: -12px 0 32px;
+}
+
 .generation-chips {
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: wrap;
   gap: 8px;
-  margin: -12px 0 32px;
+  min-width: 0;
+}
+
+.refresh-offer-btn {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 8px 18px;
+  font-size: 0.9375rem;
 }
 
 .generation-chip {
@@ -1699,9 +1714,16 @@ button:disabled {
     padding: 28px 24px;
   }
 
+  .generation-filter {
+    flex-direction: column;
+    gap: 12px;
+    margin: 0 0 24px;
+  }
+
   .generation-chips {
     flex-wrap: nowrap;
-    margin: 0 -16px 24px;
+    width: calc(100% + 32px);
+    margin: 0 -16px;
     padding: 0 16px;
     overflow-x: auto;
     scrollbar-width: none;

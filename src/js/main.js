@@ -58,6 +58,8 @@ let currentTrainer = 1;
 let runTrainers = [];
 let lastRunResult = null;
 let classicGenerationIds = [...ALL_GENERATION_IDS];
+// Regiones con las que se sacaron los 12 actuales (los chips pueden tener cambios pendientes)
+let loadedGenerationIds = [...ALL_GENERATION_IDS];
 let playerPokemonPool = FINAL_EVOLUTION_IDS;
 let enemyPokemonPool = null;
 let gameMode = "classic";
@@ -94,7 +96,15 @@ function toggleClassicGeneration(generationId) {
     classicGenerationIds = isSelected
         ? classicGenerationIds.filter(id => id !== generationId)
         : [...classicGenerationIds, generationId].sort((a, b) => a - b);
-    startClassicSelection();
+    renderClassicFilter();
+}
+
+function renderClassicFilter() {
+    renderGenerationChips("#generationChips", classicGenerationIds, toggleClassicGeneration);
+    const hasPendingChanges = classicGenerationIds.join() !== loadedGenerationIds.join();
+    const refreshBtn = document.querySelector("#refreshOfferBtn");
+    refreshBtn.classList.toggle("secondary-button", !hasPendingChanges);
+    refreshBtn.title = hasPendingChanges ? "Sacar 12 Pokémon de las regiones marcadas" : "Sacar otros 12 Pokémon";
 }
 
 async function startClassicSelection() {
@@ -104,8 +114,9 @@ async function startClassicSelection() {
     playerPokemonPool = getIdsInGenerations(classicGenerationIds, FINAL_EVOLUTION_IDS);
     enemyPokemonPool = getIdsInGenerations(classicGenerationIds);
     selectedPokemon = [];
-    renderGenerationChips("#generationChips", classicGenerationIds, toggleClassicGeneration);
     pokemonOffer = await withLoading("Buscando Pokémon salvajes...", () => getUniqueRandomPokemon(12, 2, playerPokemonPool));
+    loadedGenerationIds = [...classicGenerationIds];
+    renderClassicFilter();
     renderPokemonCards(pokemonOffer, selectedPokemon, togglePokemonSelection);
     updateSelectionUI();
     showScreen(".selection");
@@ -205,6 +216,7 @@ function equipItem(item) {
 function init() {
     document.querySelector("#classicModeBtn").addEventListener("click", startClassicMode);
     document.querySelector("#backToModesBtn").addEventListener("click", () => showScreen("#modeScreen"));
+    document.querySelector("#refreshOfferBtn").addEventListener("click", startClassicSelection);
     document.querySelector("#adventureNewBtn").addEventListener("click", startNewAdventure);
     document.querySelector("#adventureContinueBtn").addEventListener("click", continueAdventure);
     document.querySelector("#starterBackBtn").addEventListener("click", () => showScreen("#modeScreen"));

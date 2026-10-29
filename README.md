@@ -17,7 +17,7 @@ Build your team, equip your Pokémon and battle your way through a run of five t
 ### Classic Mode
 
 - Start straight away with 12 random Pokémon (final evolutions only) and choose a team of 6.
-- Region chips (Kanto to Paldea), all on by default: turn regions off or on to reroll the 12 Pokémon and your rivals from those generations.
+- Region chips (Kanto to Paldea), all on by default: mark the regions you want and press Update to reroll the 12 Pokémon and your rivals from those generations.
 - Equip your Pokémon with items before starting the run.
 - Battle against 5 trainers with teams of 6 Pokémon.
 - Pokémon keep their remaining HP between battles.

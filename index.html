@@ -113,14 +113,17 @@
                 <div class="screen-header">
                     <div class="selection-header">
                         <h1>Elige tus Pokémon</h1>
-                        <p>Escoge 6 de estos 12 para formar el equipo de tu run. Quita o añade regiones para cambiar de dónde salen tus Pokémon y los de los rivales.</p>
+                        <p>Escoge 6 de estos 12 para formar el equipo de tu run. Marca las regiones de las que quieres que salgan tus Pokémon y los de los rivales, y pulsa Actualizar.</p>
                     </div>
                     <div class="selection-toolbar">
                         <span id="selectionCount">0 / 6 seleccionados</span>
                         <button id="continueBtn" disabled>Continuar</button>
                     </div>
                 </div>
-                <div id="generationChips" class="generation-chips" role="group" aria-label="Regiones"></div>
+                <div class="generation-filter">
+                    <div id="generationChips" class="generation-chips" role="group" aria-label="Regiones"></div>
+                    <button id="refreshOfferBtn" class="refresh-offer-btn secondary-button" type="button">Actualizar</button>
+                </div>
                 <div id="pokemonGrid" class="pokemon-grid"></div>
             </section>
             <section id="itemScreen" class="item-screen hidden">
