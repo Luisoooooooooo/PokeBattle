@@ -3,29 +3,33 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="dark">
         <title>PokéBattle</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="./src/css/styles.css">
     </head>
     <body>
         <main>
             <section class="selection">
-                <div class="selection-header">
-                    <p>FORMA TU EQUIPO</p>
-                    <h1>Elige tus Pokémon</h1>
-                    <p>Selecciona 6 Pokémon para comenzar tu run</p>
-                </div>
-                <div class="selection-toolbar">
-                    <span id="selectionCount">0 / 6 seleccionados</span>
-                    <button id="continueBtn" disabled>Continuar</button>
+                <div class="screen-header">
+                    <div class="selection-header">
+                        <h1>Elige tus Pokémon</h1>
+                        <p>Escoge 6 de estos 12 para formar el equipo de tu run.</p>
+                    </div>
+                    <div class="selection-toolbar">
+                        <span id="selectionCount">0 / 6 seleccionados</span>
+                        <button id="continueBtn" disabled>Continuar</button>
+                    </div>
                 </div>
                 <div id="pokemonGrid" class="pokemon-grid"></div>
             </section>
             <section id="itemScreen" class="item-screen hidden">
-                <div class="item-header">
+                <div class="screen-header item-header">
                     <div class="selection-header">
-                        <p>EQUIPA A TU EQUIPO</p>
                         <h1>Asigna objetos</h1>
-                        <p>Selecciona un Pokémon y después un objeto</p>
+                        <p>Toca un Pokémon de tu equipo y después el objeto que quieres darle.</p>
                     </div>
                     <button id="startRunBtn">Empezar la run</button>
                 </div>
@@ -42,22 +46,22 @@
             </section>
             <section id="trainerIntroScreen" class="trainer-intro-screen hidden">
                 <div class="trainer-intro">
-                    <p>UN ENTRENADOR QUIERE COMBATIR</p>
                     <img id="trainerIntroSprite" class="trainer-intro-sprite" src="" alt="">
-                    <h1 id="trainerIntroName">ENTRENADOR</h1>
-                    <button id="startTrainerBattleBtn">¡A COMBATIR!</button>
+                    <h1 id="trainerIntroName">Entrenador</h1>
+                    <p>Te reta a un combate. <span id="trainerIntroProgress"></span></p>
+                    <button id="startTrainerBattleBtn">¡A combatir!</button>
                 </div>
             </section>
             <section id="battleScreen" class="battle-screen hidden">
                 <div class="battle-header">
-                    <div>
-                        <p>RUN EN CURSO</p>
-                        <div class="trainer-info">
-                            <img id="trainerSprite" src="" alt="">
+                    <div class="trainer-info">
+                        <img id="trainerSprite" src="" alt="">
+                        <div>
                             <h1 id="trainerName">Entrenador</h1>
+                            <p id="trainerProgress"></p>
                         </div>
                     </div>
-                    <div id="enemyPokeballs" class="enemy-pokeballs"></div>
+                    <div id="enemyPokeballs" class="enemy-pokeballs" aria-label="Pokémon del rival"></div>
                 </div>
                 <div class="battle-layout">
                     <aside class="battle-team">
@@ -67,7 +71,7 @@
                     <div class="battle-main">
                         <div class="battle-field">
                             <div class="battle-pokemon player-pokemon">
-                                <p>TU POKÉMON</p>
+                                <p>Tu Pokémon</p>
                                 <img id="playerBattleSprite" src="" alt="">
                                 <h2 id="playerBattleName">Pokémon</h2>
                                 <div id="playerBattleTypes" class="pokemon-types battle-pokemon-types"></div>
@@ -78,7 +82,7 @@
                             </div>
                             <div class="battle-vs">VS</div>
                             <div class="battle-pokemon enemy-pokemon">
-                                <p>RIVAL</p>
+                                <p>Rival</p>
                                 <img id="enemyBattleSprite" src="" alt="">
                                 <h2 id="enemyBattleName">Pokémon</h2>
                                 <div id="enemyBattleTypes" class="pokemon-types battle-pokemon-types"></div>
@@ -93,48 +97,45 @@
                     <aside class="log-panel">
                         <h2>Registro de combate</h2>
                         <div id="battleLog" class="battle-log">
-                            <p>El combate está preparado.</p>
+                            <p class="log-message">El combate está preparado.</p>
                         </div>
                     </aside>
                 </div>
             </section>
             <section id="trainerDefeatedScreen" class="trainer-defeated-screen hidden">
                 <div class="trainer-defeated">
-                    <p>ENTRENADOR DERROTADO</p>
-                    <h1 id="defeatedTrainerName">ENTRENADOR</h1>
-                    <button id="continueTrainerBtn">CONTINUAR</button>
+                    <h1>Combate ganado</h1>
+                    <p>Has derrotado a <strong id="defeatedTrainerName">Entrenador</strong>. <span id="defeatedProgress"></span></p>
+                    <button id="continueTrainerBtn">Continuar</button>
                 </div>
             </section>
             <section id="resultScreen" class="result-screen hidden">
                 <div id="resultCard" class="end-card">
                     <div class="end-hero">
-                        <p id="resultLabel" class="end-kicker">RUN COMPLETADA</p>
-                        <div id="resultTrophy" class="end-trophy">🏆</div>
-                        <h2 id="resultTitle">¡VICTORIA!</h2>
+                        <h1 id="resultTitle">¡Victoria!</h1>
                         <p id="resultMessage" class="end-summary"></p>
                         <div class="end-score-row">
-                            <div class="end-score-block">
-                                <span>PUNTUACIÓN</span>
-                                <strong id="resultScore">0</strong>
-                            </div>
                             <div class="end-rank-block">
-                                <span>RANGO</span>
+                                <span>Rango</span>
                                 <strong id="resultRank">-</strong>
+                            </div>
+                            <div class="end-score-block">
+                                <span>Puntuación</span>
+                                <strong id="resultScore">0</strong>
                             </div>
                         </div>
                     </div>
                     <div id="resultStats" class="end-stats"></div>
                     <div class="end-team-section">
                         <div class="end-team-header">
-                            <h3>EQUIPO FINAL</h3>
+                            <h2>Equipo final</h2>
                             <span>Estado al terminar la run</span>
                         </div>
                         <div id="resultTeam" class="end-team-grid"></div>
                     </div>
-                    <div id="resultMvp" class="end-mvp"></div>
                     <div class="end-actions">
-                        <button id="newRunBtn">NUEVA RUN</button>
-                        <button id="downloadResultBtn" class="secondary-button">DESCARGAR FICHA</button>
+                        <button id="newRunBtn">Nueva run</button>
+                        <button id="downloadResultBtn" class="secondary-button">Descargar ficha</button>
                     </div>
                 </div>
             </section>
@@ -142,9 +143,9 @@
         <div id="loadingScreen" class="loading-screen hidden" role="status" aria-live="polite">
             <div class="loading-panel">
                 <div id="loadingSpinner" class="loading-spinner" aria-hidden="true"></div>
-                <p id="loadingKicker" class="loading-kicker">CARGANDO</p>
-                <h2 id="loadingMessage">Preparando la run...</h2>
-                <button id="retryBtn" class="hidden">REINTENTAR</button>
+                <h2 id="loadingTitle">Preparando la run…</h2>
+                <p id="loadingMessage" class="hidden"></p>
+                <button id="retryBtn" class="hidden">Reintentar</button>
             </div>
         </div>
         <script type="module" src="./src/js/main.js"></script>
