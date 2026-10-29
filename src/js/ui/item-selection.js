@@ -1,7 +1,12 @@
 import { renderTypes } from "./pokemon-cards.js";
 import { formatPokemonName } from "../utils/formatters.js";
 
-export function renderItemTeam(pokemonTeam, selectedPokemonId, onPokemonSelect) {
+// En la aventura los objetos llevan uid (puede haber dos iguales); en el clásico basta el id
+function getItemKey(item) {
+    return item?.uid ?? item?.id;
+}
+
+export function renderItemTeam(pokemonTeam, selectedPokemonId, onPokemonSelect, onRemoveItem = pokemon => { pokemon.item = null; }) {
     const container = document.querySelector("#itemTeamGrid");
     container.innerHTML = "";
     pokemonTeam.forEach(pokemon => {
@@ -30,7 +35,7 @@ export function renderItemTeam(pokemonTeam, selectedPokemonId, onPokemonSelect) 
         if (removeItemBtn) {
             removeItemBtn.addEventListener("click", event => {
                 event.stopPropagation();
-                pokemon.item = null;
+                onRemoveItem(pokemon);
                 onPokemonSelect(pokemon);
             });
         }
@@ -41,11 +46,15 @@ export function renderItemTeam(pokemonTeam, selectedPokemonId, onPokemonSelect) 
     });
 }
 
-export function renderItemOffer(items, pokemonTeam, onItemSelect) {
+export function renderItemOffer(items, pokemonTeam, onItemSelect, emptyMessage = "") {
     const container = document.querySelector("#itemOfferGrid");
     container.innerHTML = "";
+    if (items.length === 0 && emptyMessage) {
+        container.innerHTML = `<p class="item-offer-empty">${emptyMessage}</p>`;
+        return;
+    }
     items.forEach(item => {
-        const equipped = pokemonTeam.some(pokemon => pokemon.item?.id === item.id);
+        const equipped = pokemonTeam.some(pokemon => getItemKey(pokemon.item) === getItemKey(item));
         const card = document.createElement("article");
         card.classList.add("item-card");
         if (equipped) {

@@ -1989,6 +1989,220 @@ button:disabled {
 
 
 /* =========================================================
+   RUTAS, TIENDA Y MOCHILA
+   ========================================================= */
+
+.wallet {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+.wallet span {
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+}
+
+.wallet strong {
+  font-size: var(--fs-headline);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.route-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 56px;
+}
+
+.route-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 240px;
+  padding: 28px;
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  transition:
+    transform 0.35s var(--ease),
+    background 0.2s ease;
+}
+
+.route-option:hover:not(:disabled) {
+  background: var(--surface-2);
+  transform: scale(1.015);
+}
+
+.route-option:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.route-option img {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 20px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.route-option h2 {
+  margin-bottom: 8px;
+  font-size: var(--fs-title);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.route-option p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-body);
+  font-weight: 500;
+}
+
+.route-team-section > h2 {
+  margin-bottom: 16px;
+  font-size: var(--fs-headline);
+  font-weight: 700;
+}
+
+.route-team {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.route-team-member {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 10px 8px;
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.route-team-member.fainted {
+  opacity: 0.4;
+}
+
+.route-team-member img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.route-team-member strong {
+  display: block;
+  margin-bottom: 4px;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-team-member small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.shop-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shop-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: default;
+}
+
+.item-card.shop-card:not(.used):hover {
+  transform: none;
+}
+
+.shop-card p {
+  flex: 1 1 auto;
+  margin-bottom: 16px;
+}
+
+.shop-card button {
+  width: 100%;
+}
+
+.item-offer-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 32px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text-2);
+  text-align: center;
+}
+
+@media (max-width: 1000px) {
+  .route-team {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .route-options,
+  .item-offer-grid.shop-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .route-options {
+    margin-bottom: 40px;
+  }
+
+  .route-option {
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    column-gap: 16px;
+    min-height: 0;
+    padding: 18px 20px;
+  }
+
+  .route-option img {
+    grid-row: 1 / 3;
+    width: 56px;
+    height: 56px;
+    margin: 0;
+  }
+
+  .route-option h2 {
+    margin-bottom: 4px;
+    font-size: var(--fs-headline);
+  }
+
+  .route-option p {
+    font-size: 0.9375rem;
+  }
+
+  .route-team {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .wallet {
+    align-items: flex-start;
+  }
+}
+
+
+/* =========================================================
    MOVIMIENTO REDUCIDO
    ========================================================= */
 

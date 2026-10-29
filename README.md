@@ -34,7 +34,10 @@ Build your team, equip your Pokémon and battle your way through a run of five t
 - Some rivals and champions change their team depending on your starter, like in the games.
 - Your team is healed after every Gym; in the League it is not healed between battles.
 - Lose against a Gym Leader and you can recruit a new Pokémon before trying again.
-- After each Gym, pick a new Pokémon from the region (up to 6) and re-equip items.
+- After each Gym, pick a new Pokémon from the region (up to 6).
+- Before every Gym (and Victory Road before the League) walk a route of 3 stops, choosing each time between a route Trainer, an Event, a Shop or a Pokémon Center. Your HP carries over along the route.
+- Earn money from every battle and spend it in shops on held items (kept in your bag) and medicines.
+- Random events: wild Pokémon that want to join, items found on the route, money and training.
 - Beat the Champion to travel to the next region with your team, all the way to Paldea.
 - Progress is saved in the browser so you can continue later.
 

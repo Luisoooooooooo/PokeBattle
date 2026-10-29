@@ -1,4 +1,4 @@
-import { getPokemon, getUniqueRandomPokemon, getRandomItemOffer, getPokemonFromPools } from "./api/pokeapi.js";
+import { getPokemon, getItem, getUniqueRandomPokemon, getRandomItemOffer, getPokemonFromPools } from "./api/pokeapi.js";
 import { renderPokemonCards } from "./ui/pokemon-cards.js";
 import { renderItemTeam, renderItemOffer } from "./ui/item-selection.js";
 import { resolveMatchup } from "./game/battle.js";
@@ -8,6 +8,24 @@ import { FINAL_EVOLUTION_IDS } from "./data/final-evolutions.js";
 import { ALL_GENERATION_IDS, getIdsInGenerations } from "./data/generations.js";
 import { renderGenerationFilter } from "./ui/generation-filter.js";
 import { renderAdventureProgress } from "./ui/adventure.js";
+import { renderRouteOptions, renderRouteTeam, renderShop } from "./ui/route.js";
+import {
+    START_MONEY,
+    ROUTE_LENGTH,
+    MEDICINES,
+    createRoute,
+    getRouteName,
+    getItemPrice,
+    createBagItem,
+    applyMedicine,
+    applyTraining,
+    pickEvent,
+    getRouteTrainerReward,
+    getFoundMoney,
+    getBattleReward,
+    getRouteTrainerTeamSize,
+    formatMoney
+} from "./game/routes.js";
 import {
     MAX_TEAM_SIZE,
     getRegion,
@@ -52,6 +70,10 @@ let rewardOffer = [];
 let selectedRewardId = null;
 let replacedPokemonId = null;
 let adventureMessageAction = null;
+let rewardContinuation = null;
+let itemsContinuation = null;
+let routeBattle = null;
+let shopProducts = [];
 
 function loadClassicGenerations() {
     try {
@@ -114,6 +136,7 @@ async function startClassicSelection() {
     }
     gameMode = "classic";
     document.querySelector("#startRunBtn").textContent = "Empezar la run";
+    document.querySelector("#itemOfferTitle").textContent = "Objetos disponibles";
     playerPokemonPool = getIdsInGenerations(classicGenerationIds, FINAL_EVOLUTION_IDS);
     enemyPokemonPool = getIdsInGenerations(classicGenerationIds);
     selectedPokemon = [];
@@ -156,8 +179,18 @@ async function confirmTeam() {
 }
 
 function renderItemSelection() {
+    if (gameMode === "adventure") {
+        renderItemTeam(selectedPokemon, selectedItemPokemonId, selectItemPokemon, unequipToBag);
+        renderItemOffer(getAdventureItems(), selectedPokemon, equipItem, "Tu mochila está vacía. Consigue objetos en las tiendas y eventos de las rutas.");
+        return;
+    }
     renderItemTeam(selectedPokemon, selectedItemPokemonId, selectItemPokemon);
     renderItemOffer(itemOffer, selectedPokemon, equipItem);
+}
+
+function unequipToBag(pokemon) {
+    adventure.bag.push(pokemon.item);
+    pokemon.item = null;
 }
 
 function selectItemPokemon(pokemon) {
@@ -169,6 +202,12 @@ function equipItem(item) {
     const pokemon = selectedPokemon.find(pokemon => pokemon.id === selectedItemPokemonId);
     if (!pokemon) {
         return;
+    }
+    if (gameMode === "adventure") {
+        if (pokemon.item) {
+            adventure.bag.push(pokemon.item);
+        }
+        adventure.bag = adventure.bag.filter(bagItem => bagItem.uid !== item.uid);
     }
     pokemon.item = item;
     renderItemSelection();
@@ -185,7 +224,9 @@ function init() {
     document.querySelector("#starterBackBtn").addEventListener("click", () => showScreen("#modeScreen"));
     document.querySelector("#confirmStarterBtn").addEventListener("click", confirmStarter);
     document.querySelector("#acceptRewardBtn").addEventListener("click", acceptAdventureReward);
-    document.querySelector("#skipRewardBtn").addEventListener("click", showAdventureItems);
+    document.querySelector("#skipRewardBtn").addEventListener("click", () => rewardContinuation?.());
+    document.querySelector("#routeBagBtn").addEventListener("click", () => showAdventureItems(showRoute));
+    document.querySelector("#leaveShopBtn").addEventListener("click", leaveShop);
     document.querySelector("#adventureMessageBtn").addEventListener("click", () => adventureMessageAction?.());
     renderAdventureModeCard();
     const continueBtn = document.querySelector("#continueBtn");
@@ -523,7 +564,7 @@ async function handleResolveMatchup() {
         addBattleLogMessage(`¡Has derrotado a ${getCurrentTrainer().name}!`, "important");
         resolveMatchupBtn.disabled = true;
         if (gameMode === "adventure") {
-            await handleAdventureTrainerDefeated();
+            await (routeBattle ? handleRouteBattleWon() : handleAdventureTrainerDefeated());
         } else if (currentTrainer < TOTAL_TRAINERS) {
             await wait(1000);
             const trainer = runTrainers[currentTrainer - 1];
@@ -544,7 +585,11 @@ async function handleResolveMatchup() {
         renderBattleTeam();
         await wait(1000);
         if (gameMode === "adventure") {
-            handleAdventureTeamDefeated();
+            if (routeBattle) {
+                handleRouteBattleLost();
+            } else {
+                handleAdventureTeamDefeated();
+            }
         } else {
             showResultScreen(false);
         }
@@ -648,7 +693,7 @@ function renderBattleTeam() {
 
 function getCurrentTrainer() {
     if (gameMode === "adventure") {
-        return getCurrentStageInfo().trainer;
+        return routeBattle ? routeBattle.trainer : getCurrentStageInfo().trainer;
     }
     return runTrainers[currentTrainer - 1];
 }
@@ -656,6 +701,9 @@ function getCurrentTrainer() {
 function getTrainerProgressText() {
     if (gameMode === "adventure") {
         const region = getRegion(adventure.plan.regionIndex).region;
+        if (routeBattle) {
+            return `${region} · ${adventure.route.name} · Entrenador de la ruta`;
+        }
         return `${region} · ${getCurrentStageInfo().progressText}`;
     }
     return `Entrenador ${currentTrainer} de ${TOTAL_TRAINERS}`;
@@ -961,7 +1009,7 @@ function renderAdventureModeCard() {
     const region = getRegion(saved.plan.regionIndex).region;
     const nextTrainer = getStageInfo(saved.plan, saved.stage, saved.starterSlot).trainer.name;
     const badges = saved.badges ?? 0;
-    text.textContent = `Partida guardada en ${region}: ${badges} ${badges === 1 ? "medalla" : "medallas"} y ${saved.team.length} Pokémon en el equipo. Próximo combate: ${nextTrainer}.`;
+    text.textContent = `Partida guardada en ${region}: ${badges} ${badges === 1 ? "medalla" : "medallas"}, ${saved.team.length} Pokémon y ${formatMoney(saved.money ?? START_MONEY)}. Próximo combate: ${nextTrainer}.`;
 }
 
 function getCurrentStageInfo() {
@@ -974,6 +1022,9 @@ function saveCurrentAdventure() {
         stage: adventure.stage,
         badges: adventure.badges,
         starterSlot: adventure.starterSlot,
+        money: adventure.money,
+        bag: adventure.bag,
+        route: adventure.route,
         team: selectedPokemon
     });
 }
@@ -983,10 +1034,16 @@ async function startNewAdventure() {
         return;
     }
     gameMode = "adventure";
-    adventure = { plan: createRegionPlan(0), stage: 0, badges: 0, starterSlot: 0 };
+    adventure = { plan: createRegionPlan(0), stage: 0, badges: 0, starterSlot: 0, money: START_MONEY, bag: [], route: null };
     selectedPokemon = [];
     selectedStarter = null;
-    starterOffer = await withLoading("Buscando compañeros...", () => Promise.all(getStarterIds(0).map(id => getPokemon(id))));
+    const [starters, startingItems] = await withLoading("Buscando compañeros...", () => Promise.all([
+        Promise.all(getStarterIds(0).map(id => getPokemon(id))),
+        getRandomItemOffer()
+    ]));
+    starterOffer = starters;
+    // Se empieza con tres objetos normales en la mochila
+    adventure.bag = startingItems.filter(item => !item.rare).slice(0, 3).map(createBagItem);
     document.querySelector("#starterMessage").textContent = `Tu aventura empieza en ${getRegion(0).region} con uno de estos tres Pokémon.`;
     renderStarterSelection();
     showScreen("#adventureStarterScreen");
@@ -1000,20 +1057,26 @@ function renderStarterSelection() {
     document.querySelector("#confirmStarterBtn").disabled = !selectedStarter;
 }
 
-async function confirmStarter() {
+function confirmStarter() {
     if (!selectedStarter) {
         return;
     }
     selectedPokemon = [selectedStarter];
     adventure.starterSlot = starterOffer.indexOf(selectedStarter);
     saveCurrentAdventure();
-    await showAdventureItems();
+    showAdventureItems(enterRoute);
 }
 
-async function showAdventureItems() {
-    itemOffer = await withLoading("Preparando los objetos...", getRandomItemOffer);
+function getAdventureItems() {
+    const equippedItems = selectedPokemon.filter(pokemon => pokemon.item).map(pokemon => pokemon.item);
+    return [...adventure.bag, ...equippedItems];
+}
+
+function showAdventureItems(onContinue) {
+    itemsContinuation = onContinue;
     selectedItemPokemonId = selectedPokemon[0]?.id ?? null;
     document.querySelector("#startRunBtn").textContent = "Continuar";
+    document.querySelector("#itemOfferTitle").textContent = "Tu mochila";
     renderItemSelection();
     showScreen("#itemScreen");
 }
@@ -1025,14 +1088,25 @@ async function continueAdventure() {
         return;
     }
     gameMode = "adventure";
-    adventure = { plan: saved.plan, stage: saved.stage, badges: saved.badges ?? 0, starterSlot: saved.starterSlot ?? 0 };
+    adventure = {
+        plan: saved.plan,
+        stage: saved.stage,
+        badges: saved.badges ?? 0,
+        starterSlot: saved.starterSlot ?? 0,
+        money: saved.money ?? START_MONEY,
+        bag: saved.bag ?? [],
+        route: saved.route ?? null
+    };
     selectedPokemon = saved.team;
+    if (adventure.route) {
+        showRoute();
+        return;
+    }
     await startAdventureStage();
 }
 
-async function startAdventureStage() {
-    const { team } = getCurrentStageInfo();
-    await loadEnemyTeam(() => Promise.all(team.map(name => getPokemon(name))));
+async function startAdventureBattle(fetchTeam) {
+    await loadEnemyTeam(fetchTeam);
     updateTrainerUI();
     activePokemon = selectedPokemon.find(pokemon => !pokemon.fainted) ?? selectedPokemon[0];
     playerPokemonNeedsEntry = true;
@@ -1045,6 +1119,12 @@ async function startAdventureStage() {
     showTrainerIntro();
 }
 
+async function startAdventureStage() {
+    routeBattle = null;
+    const { team } = getCurrentStageInfo();
+    await startAdventureBattle(() => Promise.all(team.map(name => getPokemon(name))));
+}
+
 function showAdventureMessage({ title, text, buttonText, progress, onContinue }) {
     document.querySelector("#adventureMessageTitle").textContent = title;
     document.querySelector("#adventureMessageText").textContent = text;
@@ -1052,6 +1132,10 @@ function showAdventureMessage({ title, text, buttonText, progress, onContinue })
     renderAdventureProgress("#adventureMessageStages", getStageMarkers(progress.plan, progress.stage), getStageLabels(progress.plan.regionIndex));
     adventureMessageAction = onContinue;
     showScreen("#adventureMessageScreen");
+}
+
+function getCurrentProgress() {
+    return { plan: adventure.plan, stage: adventure.stage };
 }
 
 function formatBadgesLeft(badgesLeft, league) {
@@ -1066,6 +1150,8 @@ async function handleAdventureTrainerDefeated() {
     const regionIndex = adventure.plan.regionIndex;
     const region = getRegion(regionIndex).region;
     const league = getLeague(regionIndex);
+    const reward = getBattleReward(info.kind, adventure.stage);
+    adventure.money += reward;
     await wait(1000);
     if (info.kind === "gym") {
         adventure.badges++;
@@ -1074,10 +1160,10 @@ async function handleAdventureTrainerDefeated() {
         saveCurrentAdventure();
         showAdventureMessage({
             title: "Medalla conseguida",
-            text: `Has vencido a ${info.trainer.name} y tu equipo se ha curado en el Centro Pokémon. ${formatBadgesLeft(getLeagueStart(regionIndex) - adventure.stage, league)}`,
+            text: `Has vencido a ${info.trainer.name} y ganas ${formatMoney(reward)}. Tu equipo se ha curado en el Centro Pokémon. ${formatBadgesLeft(getLeagueStart(regionIndex) - adventure.stage, league)}`,
             buttonText: "Elegir recompensa",
-            progress: { plan: adventure.plan, stage: adventure.stage },
-            onContinue: showAdventureReward
+            progress: getCurrentProgress(),
+            onContinue: () => showAdventureReward({ onDone: () => showAdventureItems(enterRoute) })
         });
         return;
     }
@@ -1087,9 +1173,9 @@ async function handleAdventureTrainerDefeated() {
         const isLastMember = adventure.stage === getStageCount(regionIndex) - 1;
         showAdventureMessage({
             title: "Combate ganado",
-            text: `Has vencido a ${info.trainer.name}. ${isLastMember ? "Solo queda el combate por el campeonato." : `Te espera el siguiente combate ${league.leagueOf}.`} En la Liga tu equipo no se cura entre combates.`,
+            text: `Has vencido a ${info.trainer.name} y ganas ${formatMoney(reward)}. ${isLastMember ? "Solo queda el combate por el campeonato." : `Te espera el siguiente combate ${league.leagueOf}.`} En la Liga tu equipo no se cura entre combates.`,
             buttonText: isLastMember ? "Retar al campeonato" : "Siguiente combate",
-            progress: { plan: adventure.plan, stage: adventure.stage },
+            progress: getCurrentProgress(),
             onContinue: startAdventureStage
         });
         return;
@@ -1113,10 +1199,10 @@ async function handleAdventureTrainerDefeated() {
     saveCurrentAdventure();
     showAdventureMessage({
         title: `Liga de ${region} superada`,
-        text: `Has vencido a ${info.trainer.name}. Tu equipo se ha curado y tu viaje continúa en ${nextRegion}.`,
+        text: `Has vencido a ${info.trainer.name} y ganas ${formatMoney(reward)}. Tu equipo se ha curado y tu viaje continúa en ${nextRegion}.`,
         buttonText: `Viajar a ${nextRegion}`,
         progress: { plan: completedPlan, stage: getStageCount(regionIndex) },
-        onContinue: showAdventureReward
+        onContinue: () => showAdventureReward({ onDone: () => showAdventureItems(enterRoute) })
     });
 }
 
@@ -1134,21 +1220,23 @@ function handleAdventureTeamDefeated() {
             ? `${info.trainer.name} te ha vencido. Tu equipo se ha curado, pero tendrás que volver a empezar la Liga.`
             : `${info.trainer.name} te ha vencido. Tu equipo se ha curado en el Centro Pokémon y, antes de volver a intentarlo, puedes buscar refuerzos.`,
         buttonText: inLeague ? "Volver a la Liga" : "Buscar refuerzos",
-        progress: { plan: adventure.plan, stage: adventure.stage },
+        progress: getCurrentProgress(),
         // Tras perder contra un líder se puede sumar un Pokémon, para no quedarse atascado
-        onContinue: inLeague ? startAdventureStage : showAdventureReward
+        onContinue: inLeague ? startAdventureStage : () => showAdventureReward({ onDone: () => showAdventureItems(startAdventureStage) })
     });
 }
 
-async function showAdventureReward() {
+async function showAdventureReward({ count = 3, message = null, onDone }) {
     const region = getRegion(adventure.plan.regionIndex).region;
     const pool = getRewardPool(adventure.plan.regionIndex, selectedPokemon);
-    rewardOffer = await withLoading("Buscando Pokémon...", () => getPokemonFromPools(3, [pool]));
+    rewardOffer = await withLoading("Buscando Pokémon...", () => getPokemonFromPools(count, [pool]));
+    rewardContinuation = onDone;
     selectedRewardId = null;
     replacedPokemonId = null;
-    document.querySelector("#rewardMessage").textContent = selectedPokemon.length < MAX_TEAM_SIZE
+    const defaultMessage = selectedPokemon.length < MAX_TEAM_SIZE
         ? `Elige un Pokémon de ${region} para unirlo a tu equipo (${selectedPokemon.length} de ${MAX_TEAM_SIZE}).`
         : `Elige un Pokémon de ${region} si quieres cambiarlo por uno de tu equipo.`;
+    document.querySelector("#rewardMessage").textContent = message ?? defaultMessage;
     renderAdventureReward();
     showScreen("#adventureRewardScreen");
 }
@@ -1173,30 +1261,186 @@ function renderAdventureReward() {
     acceptRewardBtn.disabled = !selectedReward || (teamIsFull && !replacedPokemonId);
 }
 
-async function acceptAdventureReward() {
+function acceptAdventureReward() {
     const reward = rewardOffer.find(pokemon => pokemon.id === selectedRewardId);
     if (!reward) {
         return;
     }
     if (selectedPokemon.length >= MAX_TEAM_SIZE) {
-        if (!replacedPokemonId) {
+        const replaced = selectedPokemon.find(pokemon => pokemon.id === replacedPokemonId);
+        if (!replaced) {
             return;
         }
-        selectedPokemon = selectedPokemon.map(pokemon => pokemon.id === replacedPokemonId ? reward : pokemon);
+        // El objeto del Pokémon que se va vuelve a la mochila
+        if (replaced.item) {
+            adventure.bag.push(replaced.item);
+        }
+        selectedPokemon = selectedPokemon.map(pokemon => pokemon === replaced ? reward : pokemon);
     } else {
         selectedPokemon = [...selectedPokemon, reward];
     }
     saveCurrentAdventure();
-    await showAdventureItems();
+    rewardContinuation();
 }
 
 async function handleItemScreenContinue() {
     if (gameMode === "adventure") {
         saveCurrentAdventure();
-        await startAdventureStage();
+        await itemsContinuation();
         return;
     }
     await startRun();
+}
+
+// ---------- Rutas ----------
+
+function enterRoute() {
+    adventure.route = createRoute(getRouteName(adventure.stage, getLeagueStart(adventure.plan.regionIndex)));
+    saveCurrentAdventure();
+    showRoute();
+}
+
+function advanceRoute() {
+    adventure.route.index++;
+    saveCurrentAdventure();
+}
+
+function showRoute() {
+    const route = adventure.route;
+    if (route.index >= ROUTE_LENGTH) {
+        adventure.route = null;
+        saveCurrentAdventure();
+        startAdventureStage();
+        return;
+    }
+    const nextTrainer = getCurrentStageInfo().trainer.name;
+    document.querySelector("#routeTitle").textContent = route.name;
+    document.querySelector("#routeMessage").textContent = `Parada ${route.index + 1} de ${ROUTE_LENGTH} de camino a ${nextTrainer}. Elige por dónde seguir.`;
+    document.querySelector("#routeMoney").textContent = formatMoney(adventure.money);
+    renderRouteOptions("#routeOptions", route.steps[route.index], chooseRouteNode);
+    renderRouteTeam("#routeTeam", selectedPokemon);
+    showScreen("#routeScreen");
+}
+
+function showRouteMessage(title, text) {
+    showAdventureMessage({ title, text, buttonText: "Seguir por la ruta", progress: getCurrentProgress(), onContinue: showRoute });
+}
+
+async function chooseRouteNode(type) {
+    if (type === "trainer") {
+        await startRouteTrainerBattle();
+        return;
+    }
+    if (type === "shop") {
+        await openShop();
+        return;
+    }
+    if (type === "center") {
+        healTeam(selectedPokemon);
+        advanceRoute();
+        showRouteMessage("Centro Pokémon", "Tu equipo ha recuperado todos sus PS.");
+        return;
+    }
+    await runRouteEvent();
+}
+
+async function startRouteTrainerBattle() {
+    const [trainer] = getRandomTrainers(1);
+    const pool = getIdsInGenerations([getRegion(adventure.plan.regionIndex).id]);
+    routeBattle = { trainer: { name: trainer.name, sprite: trainer.sprite }, reward: getRouteTrainerReward(adventure.stage) };
+    await startAdventureBattle(() => getPokemonFromPools(getRouteTrainerTeamSize(adventure.stage), [pool]));
+}
+
+async function handleRouteBattleWon() {
+    const { trainer, reward } = routeBattle;
+    routeBattle = null;
+    adventure.money += reward;
+    advanceRoute();
+    await wait(1000);
+    showRouteMessage("Combate ganado", `Has vencido a ${trainer.name} y ganas ${formatMoney(reward)}. Tu equipo conserva los PS que le quedan.`);
+}
+
+function handleRouteBattleLost() {
+    const { trainer } = routeBattle;
+    routeBattle = null;
+    const lostMoney = Math.floor(adventure.money / 2);
+    adventure.money -= lostMoney;
+    healTeam(selectedPokemon);
+    advanceRoute();
+    showRouteMessage("Tu equipo se ha debilitado", `${trainer.name} te ha vencido y pierdes ${formatMoney(lostMoney)}. Te llevan al Centro Pokémon, donde tu equipo se recupera.`);
+}
+
+async function runRouteEvent() {
+    const event = pickEvent();
+    const region = getRegion(adventure.plan.regionIndex).region;
+    advanceRoute();
+    if (event === "wild") {
+        await showAdventureReward({
+            count: 2,
+            message: `Dos Pokémon salvajes de ${region} se acercan. Si quieres, uno puede unirse a tu equipo.`,
+            onDone: showRoute
+        });
+        return;
+    }
+    if (event === "item") {
+        const offer = await withLoading("Buscando...", getRandomItemOffer);
+        const item = createBagItem(offer.find(candidate => !candidate.rare) ?? offer[0]);
+        adventure.bag.push(item);
+        saveCurrentAdventure();
+        showRouteMessage("Objeto encontrado", `Has encontrado ${item.name} entre la hierba. Ya está en tu mochila.`);
+        return;
+    }
+    if (event === "training") {
+        const bonus = applyTraining(selectedPokemon);
+        saveCurrentAdventure();
+        showRouteMessage("Entrenamiento", `Tu equipo entrena en la ruta: +${bonus} a Ataque, Ataque Especial, Defensa, Defensa Especial y Velocidad.`);
+        return;
+    }
+    const money = getFoundMoney(adventure.stage);
+    adventure.money += money;
+    saveCurrentAdventure();
+    showRouteMessage("Dinero encontrado", `Has encontrado ${formatMoney(money)} en el camino.`);
+}
+
+// ---------- Tienda ----------
+
+async function openShop() {
+    const [offer, medicineSprites] = await withLoading("Abriendo la tienda...", () => Promise.all([
+        getRandomItemOffer(),
+        Promise.all(MEDICINES.map(medicine => getItem(medicine.id)))
+    ]));
+    shopProducts = [
+        ...offer.slice(0, 4).map(item => ({ ...item, kind: "item", price: getItemPrice(item), sold: false })),
+        ...MEDICINES.map((medicine, index) => ({ ...medicine, kind: "medicine", sprite: medicineSprites[index].sprite }))
+    ];
+    renderShopScreen();
+    showScreen("#shopScreen");
+}
+
+function renderShopScreen() {
+    document.querySelector("#shopMoney").textContent = formatMoney(adventure.money);
+    renderShop("#shopGrid", shopProducts, adventure.money, buyProduct);
+}
+
+function buyProduct(product) {
+    if (product.sold || adventure.money < product.price) {
+        return;
+    }
+    adventure.money -= product.price;
+    if (product.kind === "item") {
+        const { kind, price, sold, ...item } = product;
+        adventure.bag.push(createBagItem(item));
+        product.sold = true;
+    } else {
+        applyMedicine(product.id, selectedPokemon);
+    }
+    saveCurrentAdventure();
+    renderShopScreen();
+}
+
+function leaveShop() {
+    advanceRoute();
+    showRoute();
 }
 
 init();
