@@ -61,11 +61,6 @@ export async function getRandomItemOffer() {
     return itemOffer;
 }
 
-export async function getRandomPokemon() {
-    const randomId = Math.floor(Math.random() * MAX_POKEMON_ID) + 1;
-    return getPokemon(randomId);
-}
-
 function canAddPokemonByTypeLimit(pokemon, typeCounts, maxPerType) {
     return pokemon.types.every(type => {
         return (typeCounts[type] ?? 0) < maxPerType;
@@ -78,22 +73,117 @@ function addPokemonTypesToCount(pokemon, typeCounts) {
     });
 }
 
-export async function getUniqueRandomPokemon(count, maxPerType = null) {
+// Sin idPool se elige entre todos los IDs del 1 a MAX_POKEMON_ID
+function getRandomUntriedIds(amount, triedIds, idPool = null) {
+    const poolSize = idPool ? idPool.length : MAX_POKEMON_ID;
+    const ids = [];
+    while (ids.length < amount && triedIds.size < poolSize) {
+        const randomIndex = Math.floor(Math.random() * poolSize);
+        const randomId = idPool ? idPool[randomIndex] : randomIndex + 1;
+        if (triedIds.has(randomId)) {
+            continue;
+        }
+        triedIds.add(randomId);
+        ids.push(randomId);
+    }
+    return ids;
+}
+
+export async function getUniqueRandomPokemon(count, maxPerType = null, idPool = null) {
     const pokemonMap = new Map();
     const typeCounts = {};
+    const triedIds = new Set();
     while (pokemonMap.size < count) {
-        const pokemon = await getRandomPokemon();
-        if (pokemonMap.has(pokemon.id)) {
-            continue;
+        // Se piden el doble de los que faltan porque algunos se descartan por el límite de tipos
+        const batchIds = getRandomUntriedIds((count - pokemonMap.size) * 2, triedIds, idPool);
+        if (batchIds.length === 0) {
+            throw new Error("No hay suficientes Pokémon disponibles");
         }
-        if (maxPerType !== null && !canAddPokemonByTypeLimit(pokemon, typeCounts, maxPerType)) {
-            continue;
+        const results = await Promise.allSettled(batchIds.map(id => getPokemon(id)));
+        const loadedPokemon = results
+            .filter(result => result.status === "fulfilled")
+            .map(result => result.value);
+        if (loadedPokemon.length === 0) {
+            throw results[0].reason;
         }
-        pokemonMap.set(pokemon.id, pokemon);
-        if (maxPerType !== null) {
-            addPokemonTypesToCount(pokemon, typeCounts);
+        for (const pokemon of loadedPokemon) {
+            if (pokemonMap.size >= count) {
+                break;
+            }
+            if (maxPerType !== null && !canAddPokemonByTypeLimit(pokemon, typeCounts, maxPerType)) {
+                continue;
+            }
+            pokemonMap.set(pokemon.id, pokemon);
+            if (maxPerType !== null) {
+                addPokemonTypesToCount(pokemon, typeCounts);
+            }
         }
     }
 
     return [...pokemonMap.values()];
+}
+
+
+const TYPE_API_BASE_URL = "https://pokeapi.co/api/v2/type";
+const TYPE_INDEX_KEY = "pokebattle.typeIndex.v1";
+const POKEMON_TYPES = [
+    "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
+    "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"
+];
+
+function readCachedTypeIndex() {
+    try {
+        const cached = JSON.parse(localStorage.getItem(TYPE_INDEX_KEY));
+        if (cached && POKEMON_TYPES.every(type => Array.isArray(cached[type]))) {
+            return cached;
+        }
+    } catch (error) {
+        console.warn(error);
+    }
+    return null;
+}
+
+// Devuelve { tipo: [IDs de especie] } para los 18 tipos; se guarda en el navegador tras la primera vez
+export async function getTypeIndex() {
+    const cached = readCachedTypeIndex();
+    if (cached) {
+        return cached;
+    }
+    const entries = await Promise.all(POKEMON_TYPES.map(async type => {
+        const response = await fetch(`${TYPE_API_BASE_URL}/${type}`);
+        if (!response.ok) {
+            throw new Error(`Error al cargar el tipo ${type}`);
+        }
+        const data = await response.json();
+        const ids = data.pokemon
+            .map(entry => Number(entry.pokemon.url.split("/").filter(Boolean).pop()))
+            .filter(id => id <= MAX_POKEMON_ID);
+        return [type, ids];
+    }));
+    const typeIndex = Object.fromEntries(entries);
+    try {
+        localStorage.setItem(TYPE_INDEX_KEY, JSON.stringify(typeIndex));
+    } catch (error) {
+        console.warn(error);
+    }
+    return typeIndex;
+}
+
+// Elige count Pokémon recorriendo las listas en orden: solo pasa a la siguiente si la anterior no llega
+export async function getPokemonFromPools(count, pools, maxPerType = null) {
+    const team = [];
+    for (const pool of pools) {
+        const remaining = count - team.length;
+        if (remaining <= 0) {
+            break;
+        }
+        const chosenIds = new Set(team.map(pokemon => pokemon.id));
+        const available = pool.filter(id => !chosenIds.has(id));
+        if (available.length === 0) {
+            continue;
+        }
+        const picked = await getUniqueRandomPokemon(Math.min(remaining, available.length), maxPerType, available);
+        team.push(...picked);
+    }
+    return team;
 }
