@@ -142,6 +142,10 @@ function togglePokemonSelection(pokemon) {
     }
     renderPokemonCards(pokemonOffer, selectedPokemon, togglePokemonSelection);
     updateSelectionUI();
+    // En móvil «Continuar» está arriba: al completar el equipo se sube hasta él
+    if (selectedPokemon.length === TEAM_SIZE && isMobileLayout()) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
 }
 
 async function confirmTeam() {

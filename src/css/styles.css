@@ -1252,7 +1252,7 @@ button:disabled {
 }
 
 .end-hero {
-  margin-bottom: 48px;
+  margin-bottom: 32px;
   text-align: center;
 }
 
@@ -1543,7 +1543,7 @@ button:disabled {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin-top: 56px;
+  margin-bottom: 48px;
 }
 
 .end-actions button {
@@ -1893,25 +1893,8 @@ button:disabled {
     flex-direction: column;
   }
 
-  .adventure-screen .screen-header {
-    display: contents;
-  }
-
   .adventure-screen .back-button {
     align-self: flex-start;
-  }
-
-  .adventure-screen .selection-header {
-    margin-bottom: 24px;
-  }
-
-  .adventure-screen .selection-toolbar {
-    order: 2;
-    margin-top: 20px;
-  }
-
-  .adventure-screen .reward-replace {
-    order: 1;
   }
 
   .starter-grid {
@@ -2295,16 +2278,8 @@ button:disabled {
   }
 
   .selection-toolbar {
-    position: sticky;
-    bottom: 16px;
-    z-index: 10;
     justify-content: space-between;
-    order: 1;
-    padding: 8px 8px 8px 20px;
-    border-radius: var(--radius-pill);
-    background: rgba(44, 44, 46, 0.82);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    gap: 12px;
   }
 
   .selection-toolbar span {
@@ -2312,25 +2287,17 @@ button:disabled {
   }
 
   .selection-toolbar button {
+    flex: 1 1 0;
     min-width: 0;
+    min-height: 48px;
+    padding: 12px 14px;
+    font-size: 0.9375rem;
+    white-space: nowrap;
   }
 
   .selection {
     display: flex;
     flex-direction: column;
-  }
-
-  .selection .screen-header {
-    display: contents;
-  }
-
-  .selection .selection-header {
-    margin-bottom: 28px;
-  }
-
-  .selection .selection-toolbar {
-    order: 2;
-    margin-top: 20px;
   }
 
   .pokemon-grid,
@@ -2460,7 +2427,7 @@ button:disabled {
 
   .end-actions {
     flex-direction: column;
-    margin-top: 40px;
+    margin-bottom: 36px;
   }
 
   .end-actions button {
@@ -2561,7 +2528,7 @@ button,
 @media (max-width: 700px) {
   main {
     padding-top: calc(20px + env(safe-area-inset-top));
-    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
   }
 
   .selection-header h1,
@@ -2595,10 +2562,6 @@ button,
     width: 32px;
     min-height: 32px;
     height: 32px;
-  }
-
-  .selection-toolbar {
-    bottom: calc(12px + env(safe-area-inset-bottom));
   }
 
   /* --- Combate --- */
@@ -2782,14 +2745,7 @@ button,
   /* --- Objetos y mochila --- */
 
   #itemScreen .item-header > button {
-    position: fixed;
-    right: 16px;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    left: 16px;
-    z-index: 20;
-    width: auto;
-    min-height: 52px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    min-height: 48px;
   }
 
   .item-layout {
@@ -2867,11 +2823,5 @@ button,
     width: 44px;
     height: 44px;
     margin-bottom: 6px;
-  }
-
-  /* --- Barras fijas de pantallas de aventura --- */
-
-  .adventure-screen .selection-toolbar {
-    bottom: calc(12px + env(safe-area-inset-bottom));
   }
 }
