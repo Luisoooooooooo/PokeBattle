@@ -70,6 +70,7 @@ let rewardOffer = [];
 let selectedRewardId = null;
 let replacedPokemonId = null;
 let adventureMessageAction = null;
+let adventureMessageBagAction = null;
 let rewardContinuation = null;
 let itemsContinuation = null;
 let routeBattle = null;
@@ -231,6 +232,7 @@ function init() {
     document.querySelector("#routeBagBtn").addEventListener("click", () => showAdventureItems(showRoute));
     document.querySelector("#leaveShopBtn").addEventListener("click", leaveShop);
     document.querySelector("#adventureMessageBtn").addEventListener("click", () => adventureMessageAction?.());
+    document.querySelector("#adventureMessageBagBtn").addEventListener("click", () => adventureMessageBagAction?.());
     renderAdventureModeCard();
     const continueBtn = document.querySelector("#continueBtn");
     continueBtn.addEventListener("click", confirmTeam);
@@ -1115,10 +1117,10 @@ function getAdventureItems() {
     return [...adventure.bag.filter(item => !item.medicine), ...equippedItems];
 }
 
-function showAdventureItems(onContinue) {
+function showAdventureItems(onContinue, continueText = "Continuar") {
     itemsContinuation = onContinue;
     selectedItemPokemonId = selectedPokemon[0]?.id ?? null;
-    document.querySelector("#startRunBtn").textContent = "Continuar";
+    document.querySelector("#startRunBtn").textContent = continueText;
     document.querySelector("#itemOfferTitle").textContent = "Tu mochila";
     renderItemSelection();
     showScreen("#itemScreen");
@@ -1168,10 +1170,13 @@ async function startAdventureStage() {
     await startAdventureBattle(() => Promise.all(team.map(name => getPokemon(name))));
 }
 
-function showAdventureMessage({ title, text, buttonText, progress, onContinue }) {
+// onBag añade el botón Mochila (se usa entre combates de la Liga)
+function showAdventureMessage({ title, text, buttonText, progress, onContinue, onBag = null }) {
     document.querySelector("#adventureMessageTitle").textContent = title;
     document.querySelector("#adventureMessageText").textContent = text;
     document.querySelector("#adventureMessageBtn").textContent = buttonText;
+    document.querySelector("#adventureMessageBagBtn").classList.toggle("hidden", !onBag);
+    adventureMessageBagAction = onBag;
     renderAdventureProgress("#adventureMessageStages", getStageMarkers(progress.plan, progress.stage), getStageLabels(progress.plan.regionIndex));
     adventureMessageAction = onContinue;
     showScreen("#adventureMessageScreen");
@@ -1214,12 +1219,14 @@ async function handleAdventureTrainerDefeated() {
         adventure.stage++;
         saveCurrentAdventure();
         const isLastMember = adventure.stage === getStageCount(regionIndex) - 1;
+        const nextBattleText = isLastMember ? "Retar al campeonato" : "Siguiente combate";
         showAdventureMessage({
             title: "Combate ganado",
-            text: `Has vencido a ${info.trainer.name} y ganas ${formatMoney(reward)}. ${isLastMember ? "Solo queda el combate por el campeonato." : `Te espera el siguiente combate ${league.leagueOf}.`} En la Liga tu equipo no se cura entre combates.`,
-            buttonText: isLastMember ? "Retar al campeonato" : "Siguiente combate",
+            text: `Has vencido a ${info.trainer.name} y ganas ${formatMoney(reward)}. ${isLastMember ? "Solo queda el combate por el campeonato." : `Te espera el siguiente combate ${league.leagueOf}.`} En la Liga tu equipo no se cura entre combates, pero puedes usar la mochila.`,
+            buttonText: nextBattleText,
             progress: getCurrentProgress(),
-            onContinue: startAdventureStage
+            onContinue: startAdventureStage,
+            onBag: () => showAdventureItems(startAdventureStage, nextBattleText)
         });
         return;
     }

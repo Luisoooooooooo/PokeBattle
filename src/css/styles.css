@@ -640,6 +640,18 @@ button:disabled {
   min-height: 52px;
 }
 
+.message-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.message-actions button {
+  min-width: 200px;
+}
+
 
 /* =========================================================
    PANTALLA DE CARGA

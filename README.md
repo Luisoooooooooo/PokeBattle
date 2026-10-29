@@ -32,7 +32,7 @@ Build your team, equip your Pokémon and battle your way through a run of five t
 - Start in Kanto by choosing one of the region starters in their final evolution (Venusaur, Charizard or Blastoise).
 - Face the real Gym Leaders, Elite Four and Champion of each region with their teams from the original games (Alola uses the kahunas; Galar uses the Champion Cup).
 - Some rivals and champions change their team depending on your starter, like in the games.
-- Your team is healed after every Gym; in the League it is not healed between battles.
+- Your team is healed after every Gym; in the League it is not healed between battles, but you can open your bag to use medicines and change items.
 - Lose against a Gym Leader and you can recruit a new Pokémon before trying again.
 - After each Gym, pick a new Pokémon from the region (up to 6).
 - Before every Gym (and Victory Road before the League) walk a route of 3 stops, choosing each time between a route Trainer, an Event, a Shop or a Pokémon Center. Your HP carries over along the route.
