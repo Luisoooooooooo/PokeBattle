@@ -1,4 +1,4 @@
-import { getUniqueRandomPokemon, getRandomItemOffer, getTypeIndex, getPokemonFromPools } from "./api/pokeapi.js";
+import { getPokemon, getUniqueRandomPokemon, getRandomItemOffer, getPokemonFromPools } from "./api/pokeapi.js";
 import { renderPokemonCards } from "./ui/pokemon-cards.js";
 import { renderItemTeam, renderItemOffer } from "./ui/item-selection.js";
 import { resolveMatchup } from "./game/battle.js";
@@ -9,16 +9,16 @@ import { ALL_GENERATION_IDS, getIdsInGenerations } from "./data/generations.js";
 import { renderGenerationFilter } from "./ui/generation-filter.js";
 import { renderAdventureProgress } from "./ui/adventure.js";
 import {
-    GYM_COUNT,
-    ELITE_FOUR_COUNT,
-    STAGES_PER_REGION,
     MAX_TEAM_SIZE,
     getRegion,
+    getLeague,
     isLastRegion,
+    getLeagueStart,
+    getStageCount,
     createRegionPlan,
+    getStarterIds,
     getStageInfo,
-    getEnemyTeamRequest,
-    getStarterPools,
+    getStageLabels,
     getRewardPool,
     healTeam,
     getStageMarkers,
@@ -46,7 +46,6 @@ let playerPokemonPool = FINAL_EVOLUTION_IDS;
 let enemyPokemonPool = null;
 let gameMode = "classic";
 let adventure = null;
-let typeIndex = null;
 let starterOffer = [];
 let selectedStarter = null;
 let rewardOffer = [];
@@ -649,7 +648,7 @@ function renderBattleTeam() {
 
 function getCurrentTrainer() {
     if (gameMode === "adventure") {
-        return getStageInfo(adventure.plan, adventure.stage).trainer;
+        return getCurrentStageInfo().trainer;
     }
     return runTrainers[currentTrainer - 1];
 }
@@ -657,7 +656,7 @@ function getCurrentTrainer() {
 function getTrainerProgressText() {
     if (gameMode === "adventure") {
         const region = getRegion(adventure.plan.regionIndex).region;
-        return `${region} · ${getStageInfo(adventure.plan, adventure.stage).progressText}`;
+        return `${region} · ${getCurrentStageInfo().progressText}`;
     }
     return `Entrenador ${currentTrainer} de ${TOTAL_TRAINERS}`;
 }
@@ -681,7 +680,7 @@ function showTrainerIntro() {
     const stages = document.querySelector("#trainerIntroStages");
     stages.classList.toggle("hidden", gameMode !== "adventure");
     if (gameMode === "adventure") {
-        renderAdventureProgress("#trainerIntroStages", getStageMarkers(adventure.plan, adventure.stage));
+        renderAdventureProgress("#trainerIntroStages", getStageMarkers(adventure.plan, adventure.stage), getStageLabels(adventure.plan.regionIndex));
     }
     document.querySelector("#trainerIntroSprite").src = trainer.sprite;
     document.querySelector("#trainerIntroSprite").alt = trainer.name;
@@ -960,16 +959,13 @@ function renderAdventureModeCard() {
         return;
     }
     const region = getRegion(saved.plan.regionIndex).region;
-    const nextTrainer = getStageInfo(saved.plan, saved.stage).trainer.name;
+    const nextTrainer = getStageInfo(saved.plan, saved.stage, saved.starterSlot).trainer.name;
     const badges = saved.badges ?? 0;
     text.textContent = `Partida guardada en ${region}: ${badges} ${badges === 1 ? "medalla" : "medallas"} y ${saved.team.length} Pokémon en el equipo. Próximo combate: ${nextTrainer}.`;
 }
 
-async function ensureTypeIndex() {
-    if (!typeIndex) {
-        typeIndex = await withLoading("Preparando la aventura...", getTypeIndex);
-    }
-    return typeIndex;
+function getCurrentStageInfo() {
+    return getStageInfo(adventure.plan, adventure.stage, adventure.starterSlot);
 }
 
 function saveCurrentAdventure() {
@@ -977,6 +973,7 @@ function saveCurrentAdventure() {
         plan: adventure.plan,
         stage: adventure.stage,
         badges: adventure.badges,
+        starterSlot: adventure.starterSlot,
         team: selectedPokemon
     });
 }
@@ -986,20 +983,10 @@ async function startNewAdventure() {
         return;
     }
     gameMode = "adventure";
-    await ensureTypeIndex();
-    adventure = { plan: createRegionPlan(0, typeIndex), stage: 0, badges: 0 };
+    adventure = { plan: createRegionPlan(0), stage: 0, badges: 0, starterSlot: 0 };
     selectedPokemon = [];
     selectedStarter = null;
-    const starterPools = getStarterPools(0, typeIndex);
-    starterOffer = await withLoading("Buscando compañeros...", async () => {
-        const starters = [];
-        for (const slotPools of starterPools) {
-            const usedIds = new Set(starters.map(pokemon => pokemon.id));
-            const [starter] = await getPokemonFromPools(1, slotPools.map(pool => pool.filter(id => !usedIds.has(id))));
-            starters.push(starter);
-        }
-        return starters;
-    });
+    starterOffer = await withLoading("Buscando compañeros...", () => Promise.all(getStarterIds(0).map(id => getPokemon(id))));
     document.querySelector("#starterMessage").textContent = `Tu aventura empieza en ${getRegion(0).region} con uno de estos tres Pokémon.`;
     renderStarterSelection();
     showScreen("#adventureStarterScreen");
@@ -1018,6 +1005,7 @@ async function confirmStarter() {
         return;
     }
     selectedPokemon = [selectedStarter];
+    adventure.starterSlot = starterOffer.indexOf(selectedStarter);
     saveCurrentAdventure();
     await showAdventureItems();
 }
@@ -1037,15 +1025,14 @@ async function continueAdventure() {
         return;
     }
     gameMode = "adventure";
-    await ensureTypeIndex();
-    adventure = { plan: saved.plan, stage: saved.stage, badges: saved.badges ?? 0 };
+    adventure = { plan: saved.plan, stage: saved.stage, badges: saved.badges ?? 0, starterSlot: saved.starterSlot ?? 0 };
     selectedPokemon = saved.team;
     await startAdventureStage();
 }
 
 async function startAdventureStage() {
-    const request = getEnemyTeamRequest(adventure.plan, adventure.stage, typeIndex);
-    await loadEnemyTeam(() => getPokemonFromPools(request.count, request.pools, request.maxPerType));
+    const { team } = getCurrentStageInfo();
+    await loadEnemyTeam(() => Promise.all(team.map(name => getPokemon(name))));
     updateTrainerUI();
     activePokemon = selectedPokemon.find(pokemon => !pokemon.fainted) ?? selectedPokemon[0];
     playerPokemonNeedsEntry = true;
@@ -1062,22 +1049,23 @@ function showAdventureMessage({ title, text, buttonText, progress, onContinue })
     document.querySelector("#adventureMessageTitle").textContent = title;
     document.querySelector("#adventureMessageText").textContent = text;
     document.querySelector("#adventureMessageBtn").textContent = buttonText;
-    renderAdventureProgress("#adventureMessageStages", getStageMarkers(progress.plan, progress.stage));
+    renderAdventureProgress("#adventureMessageStages", getStageMarkers(progress.plan, progress.stage), getStageLabels(progress.plan.regionIndex));
     adventureMessageAction = onContinue;
     showScreen("#adventureMessageScreen");
 }
 
-function formatBadgesLeft(badgesLeft) {
+function formatBadgesLeft(badgesLeft, league) {
     if (badgesLeft === 0) {
-        return "Ya puedes retar al Alto Mando.";
+        return `Ya puedes retar ${league.leagueTo}.`;
     }
     return badgesLeft === 1 ? "Te falta 1 medalla." : `Te faltan ${badgesLeft} medallas.`;
 }
 
 async function handleAdventureTrainerDefeated() {
-    const info = getStageInfo(adventure.plan, adventure.stage);
+    const info = getCurrentStageInfo();
     const regionIndex = adventure.plan.regionIndex;
     const region = getRegion(regionIndex).region;
+    const league = getLeague(regionIndex);
     await wait(1000);
     if (info.kind === "gym") {
         adventure.badges++;
@@ -1086,7 +1074,7 @@ async function handleAdventureTrainerDefeated() {
         saveCurrentAdventure();
         showAdventureMessage({
             title: "Medalla conseguida",
-            text: `Has vencido a ${info.trainer.name} y tu equipo se ha curado en el Centro Pokémon. ${formatBadgesLeft(GYM_COUNT - adventure.stage)}`,
+            text: `Has vencido a ${info.trainer.name} y tu equipo se ha curado en el Centro Pokémon. ${formatBadgesLeft(getLeagueStart(regionIndex) - adventure.stage, league)}`,
             buttonText: "Elegir recompensa",
             progress: { plan: adventure.plan, stage: adventure.stage },
             onContinue: showAdventureReward
@@ -1096,10 +1084,10 @@ async function handleAdventureTrainerDefeated() {
     if (info.kind === "elite") {
         adventure.stage++;
         saveCurrentAdventure();
-        const isLastMember = adventure.stage === GYM_COUNT + ELITE_FOUR_COUNT;
+        const isLastMember = adventure.stage === getStageCount(regionIndex) - 1;
         showAdventureMessage({
             title: "Combate ganado",
-            text: `Has vencido a ${info.trainer.name}. ${isLastMember ? "Solo queda el combate por el campeonato." : "Te espera el siguiente miembro del Alto Mando."} En la Liga tu equipo no se cura entre combates.`,
+            text: `Has vencido a ${info.trainer.name}. ${isLastMember ? "Solo queda el combate por el campeonato." : `Te espera el siguiente combate ${league.leagueOf}.`} En la Liga tu equipo no se cura entre combates.`,
             buttonText: isLastMember ? "Retar al campeonato" : "Siguiente combate",
             progress: { plan: adventure.plan, stage: adventure.stage },
             onContinue: startAdventureStage
@@ -1114,46 +1102,47 @@ async function handleAdventureTrainerDefeated() {
             title: `Liga de ${region} superada`,
             text: `Has vencido a ${info.trainer.name} y has completado todas las regiones. ¡Enhorabuena!`,
             buttonText: "Volver al inicio",
-            progress: { plan: completedPlan, stage: STAGES_PER_REGION },
+            progress: { plan: completedPlan, stage: getStageCount(regionIndex) },
             onContinue: startNewRun
         });
         return;
     }
     const nextRegion = getRegion(regionIndex + 1).region;
-    adventure.plan = createRegionPlan(regionIndex + 1, typeIndex);
+    adventure.plan = createRegionPlan(regionIndex + 1);
     adventure.stage = 0;
     saveCurrentAdventure();
     showAdventureMessage({
         title: `Liga de ${region} superada`,
         text: `Has vencido a ${info.trainer.name}. Tu equipo se ha curado y tu viaje continúa en ${nextRegion}.`,
         buttonText: `Viajar a ${nextRegion}`,
-        progress: { plan: completedPlan, stage: STAGES_PER_REGION },
+        progress: { plan: completedPlan, stage: getStageCount(regionIndex) },
         onContinue: showAdventureReward
     });
 }
 
 function handleAdventureTeamDefeated() {
-    const info = getStageInfo(adventure.plan, adventure.stage);
+    const info = getCurrentStageInfo();
     const inLeague = info.kind !== "gym";
     healTeam(selectedPokemon);
     if (inLeague) {
-        adventure.stage = GYM_COUNT;
+        adventure.stage = getLeagueStart(adventure.plan.regionIndex);
     }
     saveCurrentAdventure();
     showAdventureMessage({
         title: "Tu equipo se ha debilitado",
         text: inLeague
-            ? `${info.trainer.name} te ha vencido. Tu equipo se ha curado, pero tendrás que empezar de nuevo por el Alto Mando.`
-            : `${info.trainer.name} te ha vencido. Tu equipo se ha curado en el Centro Pokémon y puedes volver a intentarlo.`,
-        buttonText: inLeague ? "Volver a la Liga" : "Reintentar",
+            ? `${info.trainer.name} te ha vencido. Tu equipo se ha curado, pero tendrás que volver a empezar la Liga.`
+            : `${info.trainer.name} te ha vencido. Tu equipo se ha curado en el Centro Pokémon y, antes de volver a intentarlo, puedes buscar refuerzos.`,
+        buttonText: inLeague ? "Volver a la Liga" : "Buscar refuerzos",
         progress: { plan: adventure.plan, stage: adventure.stage },
-        onContinue: startAdventureStage
+        // Tras perder contra un líder se puede sumar un Pokémon, para no quedarse atascado
+        onContinue: inLeague ? startAdventureStage : showAdventureReward
     });
 }
 
 async function showAdventureReward() {
     const region = getRegion(adventure.plan.regionIndex).region;
-    const pool = getRewardPool(adventure.plan.regionIndex, typeIndex, selectedPokemon);
+    const pool = getRewardPool(adventure.plan.regionIndex, selectedPokemon);
     rewardOffer = await withLoading("Buscando Pokémon...", () => getPokemonFromPools(3, [pool]));
     selectedRewardId = null;
     replacedPokemonId = null;

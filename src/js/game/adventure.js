@@ -1,120 +1,91 @@
 import { GENERATIONS, getIdsInGenerations } from "../data/generations.js";
 import { FINAL_EVOLUTION_IDS } from "../data/final-evolutions.js";
-import { getRandomTrainerIdentities } from "../data/trainers.js";
+import { LEAGUES } from "../data/leagues.js";
 import { formatTypeName } from "../utils/formatters.js";
 
-export const GYM_COUNT = 8;
-export const ELITE_FOUR_COUNT = 4;
-export const STAGES_PER_REGION = GYM_COUNT + ELITE_FOUR_COUNT + 1;
 export const MAX_TEAM_SIZE = 6;
 
-const GYM_TEAM_SIZES = [2, 3, 3, 4, 4, 5, 5, 6];
-const ELITE_FOUR_TEAM_SIZES = [5, 5, 6, 6];
-const CHAMPION_TEAM_SIZE = 6;
-// A partir de este gimnasio los líderes solo usan evoluciones finales (si hay suficientes)
-const FIRST_GYM_WITH_FINALS = 4;
-const STARTER_TYPES = ["grass", "fire", "water"];
-const MIN_TYPE_SPECIES = 6;
-const MIN_TYPE_FINALS = 3;
-
 const SAVE_KEY = "pokebattle.adventure";
-const SAVE_VERSION = 1;
-
-function shuffle(list) {
-    const shuffled = [...list];
-    for (let index = shuffled.length - 1; index > 0; index--) {
-        const randomIndex = Math.floor(Math.random() * (index + 1));
-        [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
-    }
-    return shuffled;
-}
+// La versión 1 usaba líderes aleatorios; esas partidas ya no se pueden continuar
+const SAVE_VERSION = 2;
 
 export function getRegion(regionIndex) {
     return GENERATIONS[regionIndex];
 }
 
+export function getLeague(regionIndex) {
+    return LEAGUES[regionIndex];
+}
+
 export function isLastRegion(regionIndex) {
-    return regionIndex === GENERATIONS.length - 1;
+    return regionIndex === LEAGUES.length - 1;
 }
 
-function getRegionPools(regionIndex, typeIndex) {
-    const generationId = GENERATIONS[regionIndex].id;
-    const all = getIdsInGenerations([generationId]);
-    const finals = getIdsInGenerations([generationId], FINAL_EVOLUTION_IDS);
-    const allSet = new Set(all);
-    const finalSet = new Set(finals);
-    const byType = Object.fromEntries(Object.entries(typeIndex).map(([type, ids]) => [type, {
-        all: ids.filter(id => allSet.has(id)),
-        finals: ids.filter(id => finalSet.has(id))
-    }]));
-    return { all, finals, byType };
+// Índice de la primera etapa de la Liga (= número de gimnasios de la región)
+export function getLeagueStart(regionIndex) {
+    return LEAGUES[regionIndex].gyms.length;
 }
 
-function getTrainerTitle(stage, identity) {
-    if (stage < GYM_COUNT) {
-        return `Líder ${identity.trainerName}`;
+export function getStageCount(regionIndex) {
+    const league = LEAGUES[regionIndex];
+    return league.gyms.length + league.league.length + 1;
+}
+
+export function createRegionPlan(regionIndex) {
+    return { regionIndex };
+}
+
+// Los iniciales de la región en su última evolución: Planta, Fuego y Agua
+export function getStarterIds(regionIndex) {
+    return GENERATIONS[regionIndex].previewIds;
+}
+
+function getTrainerTeam(trainer, starterSlot) {
+    return trainer.teams ? trainer.teams[starterSlot] ?? trainer.teams[0] : trainer.team;
+}
+
+export function getStageInfo(plan, stage, starterSlot) {
+    const league = LEAGUES[plan.regionIndex];
+    const leagueStart = league.gyms.length;
+    if (stage < leagueStart) {
+        const trainer = league.gyms[stage];
+        return {
+            kind: "gym",
+            trainer,
+            type: trainer.type,
+            team: getTrainerTeam(trainer, starterSlot),
+            progressText: `${league.gymLabel} ${stage + 1} de ${leagueStart} · tipo ${formatTypeName(trainer.type)}`
+        };
     }
-    if (stage < GYM_COUNT + ELITE_FOUR_COUNT) {
-        return `Alto Mando ${identity.trainerName}`;
+    if (stage < leagueStart + league.league.length) {
+        const memberIndex = stage - leagueStart;
+        const trainer = league.league[memberIndex];
+        const typeText = trainer.type ? ` · tipo ${formatTypeName(trainer.type)}` : "";
+        return {
+            kind: "elite",
+            trainer,
+            type: trainer.type,
+            team: getTrainerTeam(trainer, starterSlot),
+            progressText: `${league.leagueLabel} ${memberIndex + 1} de ${league.league.length}${typeText}`
+        };
     }
-    return `${identity.gender === "female" ? "Campeona" : "Campeón"} ${identity.trainerName}`;
+    return {
+        kind: "champion",
+        trainer: league.champion,
+        type: null,
+        team: getTrainerTeam(league.champion, starterSlot),
+        progressText: "Campeonato"
+    };
 }
 
-export function createRegionPlan(regionIndex, typeIndex) {
-    const pools = getRegionPools(regionIndex, typeIndex);
-    const suitableTypes = shuffle(Object.keys(pools.byType).filter(type => {
-        return pools.byType[type].all.length >= MIN_TYPE_SPECIES && pools.byType[type].finals.length >= MIN_TYPE_FINALS;
-    }));
-    const gymTypes = suitableTypes.slice(0, GYM_COUNT);
-    // El Alto Mando usa primero los tipos que no tienen gimnasio
-    const eliteTypes = [...suitableTypes.slice(GYM_COUNT), ...shuffle(gymTypes)].slice(0, ELITE_FOUR_COUNT);
-    const trainers = getRandomTrainerIdentities(STAGES_PER_REGION).map((identity, stage) => ({
-        name: getTrainerTitle(stage, identity),
-        sprite: identity.sprite
-    }));
-    return { regionIndex, gymTypes, eliteTypes, trainers };
+export function getStageLabels(regionIndex) {
+    const league = LEAGUES[regionIndex];
+    return { gym: league.gymLabel, elite: league.leagueLabel, champion: "Campeonato" };
 }
 
-export function getStageInfo(plan, stage) {
-    const trainer = plan.trainers[stage];
-    if (stage < GYM_COUNT) {
-        const type = plan.gymTypes[stage];
-        return { kind: "gym", trainer, type, progressText: `Gimnasio ${stage + 1} de ${GYM_COUNT} · tipo ${formatTypeName(type)}` };
-    }
-    if (stage < GYM_COUNT + ELITE_FOUR_COUNT) {
-        const memberIndex = stage - GYM_COUNT;
-        const type = plan.eliteTypes[memberIndex];
-        return { kind: "elite", trainer, type, progressText: `Alto Mando ${memberIndex + 1} de ${ELITE_FOUR_COUNT} · tipo ${formatTypeName(type)}` };
-    }
-    return { kind: "champion", trainer, type: null, progressText: "Campeonato" };
-}
-
-// Tamaño del equipo rival y listas de las que sale, en orden de preferencia
-export function getEnemyTeamRequest(plan, stage, typeIndex) {
-    const pools = getRegionPools(plan.regionIndex, typeIndex);
-    const info = getStageInfo(plan, stage);
-    if (info.kind === "champion") {
-        return { count: CHAMPION_TEAM_SIZE, pools: [pools.finals], maxPerType: 2 };
-    }
-    const typePools = pools.byType[info.type];
-    if (info.kind === "gym") {
-        const count = GYM_TEAM_SIZES[stage];
-        const usesFinals = stage >= FIRST_GYM_WITH_FINALS;
-        return { count, pools: usesFinals ? [typePools.finals, typePools.all] : [typePools.all], maxPerType: null };
-    }
-    const count = ELITE_FOUR_TEAM_SIZES[stage - GYM_COUNT];
-    return { count, pools: [typePools.finals, typePools.all, pools.finals], maxPerType: null };
-}
-
-// Una lista por hueco: un Planta, un Fuego y un Agua de la región, o cualquier evolución final si falta alguno
-export function getStarterPools(regionIndex, typeIndex) {
-    const pools = getRegionPools(regionIndex, typeIndex);
-    return STARTER_TYPES.map(type => [pools.byType[type].finals, pools.finals]);
-}
-
-export function getRewardPool(regionIndex, typeIndex, team) {
+export function getRewardPool(regionIndex, team) {
     const teamIds = new Set(team.map(pokemon => pokemon.id));
-    return getRegionPools(regionIndex, typeIndex).finals.filter(id => !teamIds.has(id));
+    return getIdsInGenerations([GENERATIONS[regionIndex].id], FINAL_EVOLUTION_IDS).filter(id => !teamIds.has(id));
 }
 
 export function healTeam(team) {
@@ -126,11 +97,12 @@ export function healTeam(team) {
 
 export function getStageMarkers(plan, stage) {
     const markers = [];
-    for (let index = 0; index < STAGES_PER_REGION; index++) {
-        const info = getStageInfo(plan, index);
+    for (let index = 0; index < getStageCount(plan.regionIndex); index++) {
+        const info = getStageInfo(plan, index, 0);
         markers.push({
             kind: info.kind,
             type: info.type,
+            label: info.trainer.name,
             done: index < stage,
             current: index === stage
         });
@@ -152,8 +124,9 @@ export function loadAdventure() {
         const isValid = saved
             && saved.version === SAVE_VERSION
             && saved.plan
-            && Array.isArray(saved.plan.trainers)
+            && LEAGUES[saved.plan.regionIndex]
             && Number.isInteger(saved.stage)
+            && saved.stage < getStageCount(saved.plan.regionIndex)
             && Array.isArray(saved.team)
             && saved.team.length > 0;
         return isValid ? saved : null;
