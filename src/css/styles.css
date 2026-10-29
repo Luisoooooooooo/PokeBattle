@@ -2482,8 +2482,17 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
-body {
+/* Sin el rectángulo de resaltado al tocar: algunos navegadores lo ponen en cada botón
+   aunque body lo tenga desactivado, y asoma por detrás de las esquinas redondeadas */
+*,
+*::before,
+*::after {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* El contorno de foco solo para teclado, no al tocar o hacer clic */
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
 button,
