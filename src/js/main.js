@@ -93,8 +93,8 @@ async function init() {
 function showLoading(message) {
     document.querySelector("#loadingScreen").classList.remove("hidden", "is-error");
     document.querySelector("#loadingSpinner").classList.remove("hidden");
-    document.querySelector("#loadingKicker").textContent = "CARGANDO";
-    document.querySelector("#loadingMessage").textContent = message;
+    document.querySelector("#loadingTitle").textContent = message;
+    document.querySelector("#loadingMessage").classList.add("hidden");
     document.querySelector("#retryBtn").classList.add("hidden");
 }
 
@@ -105,8 +105,10 @@ function hideLoading() {
 function waitForRetry() {
     document.querySelector("#loadingScreen").classList.add("is-error");
     document.querySelector("#loadingSpinner").classList.add("hidden");
-    document.querySelector("#loadingKicker").textContent = "ERROR DE CONEXIÓN";
-    document.querySelector("#loadingMessage").textContent = "No se pudo conectar con PokéAPI. Comprueba tu conexión e inténtalo de nuevo.";
+    document.querySelector("#loadingTitle").textContent = "No se pudo conectar con PokéAPI";
+    const loadingMessage = document.querySelector("#loadingMessage");
+    loadingMessage.textContent = "Comprueba tu conexión e inténtalo de nuevo.";
+    loadingMessage.classList.remove("hidden");
     const retryBtn = document.querySelector("#retryBtn");
     retryBtn.classList.remove("hidden");
     retryBtn.focus();
@@ -168,6 +170,8 @@ function updateBattlePokemonUI(pokemon, side, currentHp = pokemon.currentHp) {
     hpText.textContent = `${currentHp} / ${pokemon.maxHp} PS`;
     const hpPercentage = (currentHp / pokemon.maxHp) * 100;
     hpBar.style.width = `${Math.max(0, hpPercentage)}%`;
+    hpBar.classList.toggle("warning", hpPercentage > 25 && hpPercentage <= 50);
+    hpBar.classList.toggle("critical", hpPercentage <= 25);
 }
 
 function scrollBattleLog() {
@@ -217,7 +221,7 @@ function addBattleLogResult(winner, loser) {
     const playerWon = winner === activePokemon;
     resultBlock.classList.add("log-result", playerWon ? "log-result-player-win" : "log-result-player-loss");
     resultBlock.innerHTML = `
-        <span class="log-result-label">${playerWon ? "RIVAL DEBILITADO" : "TU POKÉMON SE DEBILITÓ"}</span>
+        <span class="log-result-label">${playerWon ? "Rival debilitado" : "Tu Pokémon se debilitó"}</span>
         <strong class="log-result-name">${formatPokemonName(loser.name)}</strong>
         <span class="log-result-detail">${formatPokemonName(winner.name)} gana el enfrentamiento</span>
     `;
@@ -230,8 +234,8 @@ function addBattleLogDoubleFaint(playerPokemon, enemyPokemon) {
     const resultBlock = document.createElement("div");
     resultBlock.classList.add("log-result", "log-result-double");
     resultBlock.innerHTML = `
-        <span class="log-result-label">DOBLE DEBILITAMIENTO</span>
-        <strong class="log-result-name">${formatPokemonName(playerPokemon.name)} Y ${formatPokemonName(enemyPokemon.name)}</strong>
+        <span class="log-result-label">Doble debilitamiento</span>
+        <strong class="log-result-name">${formatPokemonName(playerPokemon.name)} y ${formatPokemonName(enemyPokemon.name)}</strong>
         <span class="log-result-detail">Ambos Pokémon se han debilitado</span>
     `;
     battleLog.appendChild(resultBlock);
@@ -407,7 +411,9 @@ async function handleResolveMatchup() {
         if (currentTrainer < TOTAL_TRAINERS) {
             await wait(1000);
             const trainer = runTrainers[currentTrainer - 1];
+            const trainersLeft = TOTAL_TRAINERS - currentTrainer;
             document.querySelector("#defeatedTrainerName").textContent = trainer.name;
+            document.querySelector("#defeatedProgress").textContent = trainersLeft === 1 ? "Solo queda 1 entrenador." : `Quedan ${trainersLeft} entrenadores.`;
             document.querySelector("#battleScreen").classList.add("hidden");
             document.querySelector("#trainerDefeatedScreen").classList.remove("hidden");
         } else {
@@ -502,7 +508,7 @@ function renderBattleTeam() {
             <div class="battle-team-card-info">
                 <div class="battle-team-name-row">
                     <h2>${formatPokemonName(pokemon.name)}</h2>
-                    ${pokemon === activePokemon ? '<span class="battle-team-active-label">ACTIVO</span>' : ""}
+                    ${pokemon === activePokemon ? '<span class="battle-team-active-label">En combate</span>' : ""}
                 </div>
                 <div class="pokemon-types">${typesHtml}</div>
                 <div class="battle-team-hp">
@@ -525,7 +531,8 @@ function updateTrainerUI() {
     const trainerName = document.querySelector("#trainerName");
     const trainerSprite = document.querySelector("#trainerSprite");
     const trainer = runTrainers[currentTrainer - 1];
-    trainerName.textContent = `${trainer.name} · ${currentTrainer} / ${TOTAL_TRAINERS}`;
+    trainerName.textContent = trainer.name;
+    document.querySelector("#trainerProgress").textContent = `Entrenador ${currentTrainer} de ${TOTAL_TRAINERS}`;
     trainerSprite.src = trainer.sprite;
     trainerSprite.alt = trainer.name;
 }
@@ -540,6 +547,7 @@ function showTrainerIntro() {
     document.querySelector("#trainerIntroSprite").src = trainer.sprite;
     document.querySelector("#trainerIntroSprite").alt = trainer.name;
     document.querySelector("#trainerIntroName").textContent = trainer.name;
+    document.querySelector("#trainerIntroProgress").textContent = `Entrenador ${currentTrainer} de ${TOTAL_TRAINERS}.`;
     document.querySelector("#trainerIntroScreen").classList.remove("hidden");
     document.querySelector("#battleScreen").classList.add("hidden");
 }
@@ -565,6 +573,10 @@ function getRunRank(score) {
         return "B";
     }
     return "C";
+}
+
+function formatVictories(count) {
+    return `${count} ${count === 1 ? "victoria" : "victorias"}`;
 }
 
 function getMvpPokemon() {
@@ -602,9 +614,9 @@ function renderResultTeam() {
         `;
         card.innerHTML = `
             <div class="end-team-pokemon-wrap">
-                ${mvp && pokemon.id === mvp.id ? '<span class="end-team-mvp-badge">MVP DE LA RUN</span>' : ""}
+                ${mvp && pokemon.id === mvp.id ? '<span class="end-team-mvp-badge">MVP</span>' : ""}
                 <img class="end-team-pokemon" src="${pokemon.sprite}" alt="${formatPokemonName(pokemon.name)}">
-                ${pokemon.fainted ? '<span class="end-fainted-badge">DEBILITADO</span>' : ""}
+                ${pokemon.fainted ? '<span class="end-fainted-badge">Debilitado</span>' : ""}
             </div>
             <h3>${formatPokemonName(pokemon.name)}</h3>
             <div class="end-team-hp">
@@ -614,27 +626,10 @@ function renderResultTeam() {
                 <small>${pokemon.currentHp} / ${pokemon.maxHp} PS</small>
             </div>
             ${itemHtml}
-            <div class="end-team-kos">${pokemon.matchupWins} victorias</div>
+            <div class="end-team-kos">${formatVictories(pokemon.matchupWins)}</div>
         `;
         resultTeam.appendChild(card);
     });
-}
-
-function renderResultMvp() {
-    const mvp = getMvpPokemon();
-    const resultMvp = document.querySelector("#resultMvp");
-    if (!mvp) {
-        resultMvp.innerHTML = "";
-        return;
-    }
-    resultMvp.innerHTML = `
-        <span class="end-mvp-label">MVP DE LA RUN</span>
-        <img src="${mvp.sprite}" alt="${formatPokemonName(mvp.name)}">
-        <div>
-            <strong>${formatPokemonName(mvp.name)}</strong>
-            <p>${mvp.matchupWins} victorias 1v1</p>
-        </div>
-    `;
 }
 
 function showResultScreen(victory) {
@@ -665,28 +660,26 @@ function showResultScreen(victory) {
     document.querySelector("#resultScreen").classList.remove("hidden");
     const resultCard = document.querySelector("#resultCard");
     resultCard.classList.toggle("is-loss", !victory);
-    document.querySelector("#resultLabel").textContent = victory ? "RUN COMPLETADA" : "RUN FINALIZADA";
-    document.querySelector("#resultTrophy").textContent = victory ? "🏆" : "💀";
-    document.querySelector("#resultTitle").textContent = victory ? "¡VICTORIA!" : "DERROTA";
+    document.querySelector("#resultTitle").textContent = victory ? "¡Victoria!" : "Derrota";
     document.querySelector("#resultMessage").textContent = victory ? "¡Enhorabuena, has vencido a los 5 entrenadores!" : `Tu equipo ha caído ante ${runTrainers[currentTrainer - 1].name}.`;
     document.querySelector("#resultScore").textContent = score;
     document.querySelector("#resultRank").textContent = rank;
     const resultStats = document.querySelector("#resultStats");
     resultStats.innerHTML = `
         <div class="end-stat">
-            <span>ENTRENADORES</span>
+            <span>Entrenadores</span>
             <strong>${trainersDefeated} / ${TOTAL_TRAINERS}</strong>
         </div>
         <div class="end-stat">
-            <span>SUPERVIVIENTES</span>
+            <span>Supervivientes</span>
             <strong>${survivors} / ${TEAM_SIZE}</strong>
         </div>
         <div class="end-stat">
-            <span>VICTORIAS 1V1</span>
+            <span>Victorias 1v1</span>
             <strong>${totalKos}</strong>
         </div>
         <div class="end-stat">
-            <span>PS RESTANTES</span>
+            <span>PS restantes</span>
             <strong>${hpPercentage}%</strong>
         </div>
     `;
@@ -709,107 +702,91 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
     ctx.fill();
 }
 
+const CARD_FONT = "Manrope, Arial, sans-serif";
+const CARD_COLORS = {
+    background: "#000000",
+    surface: "#161618",
+    text: "#f5f5f7",
+    muted: "#a1a1a6",
+    accent: "#2997ff"
+};
+
 function drawCanvasStat(ctx, label, value, x, y, width) {
-    ctx.fillStyle = "rgba(255, 255, 255, 0.055)";
-    drawRoundedRect(ctx, x, y, width, 105, 18);
-    ctx.fillStyle = "#9ca8bd";
-    ctx.font = "700 15px Arial";
+    ctx.fillStyle = CARD_COLORS.surface;
+    drawRoundedRect(ctx, x, y, width, 118, 24);
     ctx.textAlign = "center";
-    ctx.fillText(label, x + width / 2, y + 32);
-    ctx.fillStyle = "#f7f8fb";
-    ctx.font = "700 30px Arial";
-    ctx.fillText(value, x + width / 2, y + 73);
+    ctx.fillStyle = CARD_COLORS.muted;
+    ctx.font = `600 17px ${CARD_FONT}`;
+    ctx.fillText(label, x + width / 2, y + 40);
+    ctx.fillStyle = CARD_COLORS.text;
+    ctx.font = `700 34px ${CARD_FONT}`;
+    ctx.fillText(value, x + width / 2, y + 86);
 }
 
 async function downloadResultCard() {
     if (!lastRunResult) {
         return;
     }
+    await Promise.all(["600 16px Manrope", "700 16px Manrope", "800 16px Manrope"].map(font => document.fonts.load(font)));
     const canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1350;
     const ctx = canvas.getContext("2d");
     const mvp = getMvpPokemon();
-    const background = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    background.addColorStop(0, "#15191f");
-    background.addColorStop(1, "#090b0f");
-    ctx.fillStyle = background;
+    ctx.fillStyle = CARD_COLORS.background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const glow = ctx.createRadialGradient(540, 0, 0, 540, 0, 620);
-    glow.addColorStop(0, lastRunResult.victory ? "rgba(255, 207, 58, 0.20)" : "rgba(255, 95, 109, 0.20)");
-    glow.addColorStop(1, "rgba(0, 0, 0, 0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, canvas.width, 620);
     ctx.textAlign = "center";
-    ctx.fillStyle = lastRunResult.victory ? "#ffcf3a" : "#ff5f6d";
-    ctx.font = "700 21px Arial";
-    ctx.fillText(lastRunResult.victory ? "RUN COMPLETADA" : "RUN FINALIZADA", 540, 72);
-    ctx.fillStyle = "#f7f8fb";
-    ctx.font = "900 72px Arial";
-    ctx.fillText(lastRunResult.victory ? "¡VICTORIA!" : "DERROTA", 540, 155);
-    ctx.fillStyle = "#9ca8bd";
-    ctx.font = "700 17px Arial";
-    ctx.fillText("RANGO", 540, 200);
-    ctx.fillStyle = lastRunResult.victory ? "#ffcf3a" : "#ff5f6d";
-    ctx.font = "900 92px Arial";
-    ctx.fillText(lastRunResult.rank, 540, 285);
-    ctx.fillStyle = "#9ca8bd";
-    ctx.font = "700 15px Arial";
-    ctx.fillText("PUNTUACIÓN", 540, 322);
-    ctx.fillStyle = "#f7f8fb";
-    ctx.font = "900 42px Arial";
-    ctx.fillText(lastRunResult.score, 540, 368);
-    drawCanvasStat(ctx, "ENTRENADORES", `${lastRunResult.trainersDefeated} / ${TOTAL_TRAINERS}`, 75, 415, 285);
-    drawCanvasStat(ctx, "SUPERVIVIENTES", `${lastRunResult.survivors} / ${TEAM_SIZE}`, 397.5, 415, 285);
-    drawCanvasStat(ctx, "VICTORIAS 1V1", `${lastRunResult.totalKos}`, 720, 415, 285);
-    ctx.fillStyle = "#f7f8fb";
-    ctx.font = "900 22px Arial";
+    ctx.fillStyle = CARD_COLORS.text;
+    ctx.font = `800 76px ${CARD_FONT}`;
+    ctx.fillText(lastRunResult.victory ? "¡Victoria!" : "Derrota", 540, 140);
+    ctx.fillStyle = CARD_COLORS.muted;
+    ctx.font = `600 22px ${CARD_FONT}`;
+    ctx.fillText(lastRunResult.victory ? "Run completada" : "Run finalizada", 540, 186);
+    ctx.fillStyle = lastRunResult.victory ? CARD_COLORS.accent : CARD_COLORS.text;
+    ctx.font = `800 150px ${CARD_FONT}`;
+    ctx.fillText(lastRunResult.rank, 540, 345);
+    ctx.fillStyle = CARD_COLORS.muted;
+    ctx.font = `600 20px ${CARD_FONT}`;
+    ctx.fillText(`Rango · ${lastRunResult.score} puntos`, 540, 388);
+    drawCanvasStat(ctx, "Entrenadores", `${lastRunResult.trainersDefeated} / ${TOTAL_TRAINERS}`, 75, 430, 285);
+    drawCanvasStat(ctx, "Supervivientes", `${lastRunResult.survivors} / ${TEAM_SIZE}`, 397.5, 430, 285);
+    drawCanvasStat(ctx, "Victorias 1v1", `${lastRunResult.totalKos}`, 720, 430, 285);
+    ctx.fillStyle = CARD_COLORS.text;
+    ctx.font = `700 26px ${CARD_FONT}`;
     ctx.textAlign = "left";
-    ctx.fillText("EQUIPO DE LA RUN", 75, 585);
+    ctx.fillText("Equipo de la run", 75, 605);
     const pokemonImages = await Promise.all(selectedPokemon.map(pokemon => loadImage(pokemon.sprite).catch(() => null)));
     selectedPokemon.forEach((pokemon, index) => {
         const column = index % 3;
         const row = Math.floor(index / 3);
         const x = 75 + column * 322.5;
-        const y = 620 + row * 290;
+        const y = 635 + row * 280;
         const width = 285;
-        const height = 250;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.045)";
-        drawRoundedRect(ctx, x, y, width, height, 20);
+        const height = 260;
+        ctx.fillStyle = CARD_COLORS.surface;
+        drawRoundedRect(ctx, x, y, width, height, 24);
         ctx.save();
         if (pokemon.fainted) {
             ctx.globalAlpha = 0.32;
         }
         if (pokemonImages[index]) {
             ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(pokemonImages[index], x + 57.5, y + 10, 170, 170);
+            ctx.drawImage(pokemonImages[index], x + 57.5, y + 8, 170, 170);
         }
         ctx.restore();
         ctx.textAlign = "center";
-        ctx.fillStyle = "#f7f8fb";
-        ctx.font = "900 21px Arial";
-        ctx.fillText(formatPokemonName(pokemon.name).toUpperCase(), x + width / 2, y + 188);
-        ctx.fillStyle = "#9ca8bd";
-        ctx.font = "700 14px Arial";
-        ctx.fillText(`${pokemon.currentHp} / ${pokemon.maxHp} PS · ${pokemon.matchupWins} victorias 1v1`, x + width / 2, y + 218);
-        if (pokemon === mvp) {
-            ctx.fillStyle = "#ffcf3a";
-            ctx.font = "900 12px Arial";
-            ctx.fillText("MVP", x + width / 2, y + 239);
-        }
+        ctx.fillStyle = CARD_COLORS.text;
+        ctx.font = `700 24px ${CARD_FONT}`;
+        ctx.fillText(formatPokemonName(pokemon.name), x + width / 2, y + 196);
+        ctx.fillStyle = pokemon === mvp ? CARD_COLORS.accent : CARD_COLORS.muted;
+        ctx.font = `600 16px ${CARD_FONT}`;
+        const detail = `${pokemon.currentHp} / ${pokemon.maxHp} PS · ${formatVictories(pokemon.matchupWins)}`;
+        ctx.fillText(pokemon === mvp ? `MVP · ${detail}` : detail, x + width / 2, y + 230);
     });
-    if (mvp) {
-        ctx.textAlign = "center";
-        ctx.fillStyle = "#ffcf3a";
-        ctx.font = "900 15px Arial";
-        ctx.fillText("MVP DE LA RUN", 540, 1230);
-        ctx.fillStyle = "#f7f8fb";
-        ctx.font = "900 27px Arial";
-        ctx.fillText(`${formatPokemonName(mvp.name).toUpperCase()} · ${mvp.matchupWins} VICTORIAS 1V1`, 540, 1267);
-    }
-    ctx.fillStyle = "#9ca8bd";
-    ctx.font = "700 15px Arial";
-    ctx.fillText("POKÉMON BATTLE RUN", 540, 1320);
+    ctx.textAlign = "center";
+    ctx.fillStyle = CARD_COLORS.muted;
+    ctx.font = `700 18px ${CARD_FONT}`;
+    ctx.fillText("PokéBattle", 540, 1260);
     const link = document.createElement("a");
     link.download = `pokemon-run-${lastRunResult.victory ? "victoria" : "derrota"}-${lastRunResult.score}.png`;
     link.href = canvas.toDataURL("image/png");
