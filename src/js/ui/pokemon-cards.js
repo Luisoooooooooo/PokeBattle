@@ -40,8 +40,8 @@ export function renderTypes(types) {
     }).join("");
 }
 
-export function renderPokemonCards(pokemonList, selectedPokemon, onToggle) {
-    const pokemonGrid = document.querySelector("#pokemonGrid");
+export function renderPokemonCards(pokemonList, selectedPokemon, onToggle, selector = "#pokemonGrid") {
+    const pokemonGrid = document.querySelector(selector);
     pokemonGrid.innerHTML = "";
     pokemonList.forEach(pokemon => {
         const card = createPokemonCard(pokemon, selectedPokemon, onToggle);
