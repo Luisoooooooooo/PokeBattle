@@ -6,7 +6,18 @@ function getItemKey(item) {
     return item?.uid ?? item?.id;
 }
 
-export function renderItemTeam(pokemonTeam, selectedPokemonId, onPokemonSelect, onRemoveItem = pokemon => { pokemon.item = null; }) {
+function renderHp(pokemon) {
+    const hpPercentage = Math.max(0, (pokemon.currentHp / pokemon.maxHp) * 100);
+    const hpClass = hpPercentage <= 25 ? "critical" : hpPercentage <= 50 ? "warning" : "";
+    return `
+        <div class="item-team-hp">
+            <div class="battle-team-hp-bar"><span class="${hpClass}" style="width: ${hpPercentage}%"></span></div>
+            <small>${pokemon.fainted ? "Debilitado" : `${pokemon.currentHp} / ${pokemon.maxHp} PS`}</small>
+        </div>
+    `;
+}
+
+export function renderItemTeam(pokemonTeam, selectedPokemonId, onPokemonSelect, onRemoveItem = pokemon => { pokemon.item = null; }, showHp = false) {
     const container = document.querySelector("#itemTeamGrid");
     container.innerHTML = "";
     pokemonTeam.forEach(pokemon => {
@@ -20,6 +31,7 @@ export function renderItemTeam(pokemonTeam, selectedPokemonId, onPokemonSelect, 
             <div class="item-team-content">
                 <strong>${formatPokemonName(pokemon.name)}</strong>
                 <div class="pokemon-types">${renderTypes(pokemon.types)}</div>
+                ${showHp ? renderHp(pokemon) : ""}
                 ${pokemon.item ? `
                     <div class="equipped-item">
                         <img class="equipped-item-sprite" src="${pokemon.item.sprite}" alt="">
@@ -71,6 +83,28 @@ export function renderItemOffer(items, pokemonTeam, onItemSelect, emptyMessage =
             }
             onItemSelect(item);
         });
+        container.appendChild(card);
+    });
+}
+
+// Medicinas de la mochila agrupadas por tipo, con cuántas quedan y si ahora tienen efecto
+export function renderMedicines(selector, medicines, onUse) {
+    const container = document.querySelector(selector);
+    container.innerHTML = "";
+    if (medicines.length === 0) {
+        container.innerHTML = '<p class="item-offer-empty">No tienes medicinas. Puedes comprarlas en las tiendas de las rutas.</p>';
+        return;
+    }
+    medicines.forEach(medicine => {
+        const card = document.createElement("article");
+        card.classList.add("item-card", "medicine-card");
+        card.innerHTML = `
+            <img src="${medicine.sprite}" alt="">
+            <h3>${medicine.name} <span class="medicine-count">× ${medicine.count}</span></h3>
+            <p>${medicine.description}</p>
+            <button type="button" ${medicine.usable ? "" : "disabled"}>${medicine.usable ? "Usar" : "Sin efecto ahora"}</button>
+        `;
+        card.querySelector("button").addEventListener("click", () => onUse(medicine));
         container.appendChild(card);
     });
 }

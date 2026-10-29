@@ -1,12 +1,12 @@
 import { getPokemon, getItem, getUniqueRandomPokemon, getRandomItemOffer, getPokemonFromPools } from "./api/pokeapi.js";
 import { renderPokemonCards } from "./ui/pokemon-cards.js";
-import { renderItemTeam, renderItemOffer } from "./ui/item-selection.js";
+import { renderItemTeam, renderItemOffer, renderMedicines } from "./ui/item-selection.js";
 import { resolveMatchup } from "./game/battle.js";
 import { getRandomTrainers } from "./data/trainers.js";
 import { formatPokemonName, formatTypeName } from "./utils/formatters.js";
 import { FINAL_EVOLUTION_IDS } from "./data/final-evolutions.js";
 import { ALL_GENERATION_IDS, getIdsInGenerations } from "./data/generations.js";
-import { renderGenerationFilter } from "./ui/generation-filter.js";
+import { renderGenerationChips } from "./ui/generation-filter.js";
 import { renderAdventureProgress } from "./ui/adventure.js";
 import { renderRouteOptions, renderRouteTeam, renderShop } from "./ui/route.js";
 import {
@@ -18,10 +18,9 @@ import {
     getItemPrice,
     createBagItem,
     applyMedicine,
-    applyTraining,
+    canUseMedicine,
     pickEvent,
     getRouteTrainerReward,
-    getFoundMoney,
     getBattleReward,
     getRouteTrainerTeamSize,
     formatMoney
@@ -47,7 +46,6 @@ import {
 
 const TEAM_SIZE = 6;
 const TOTAL_TRAINERS = 5;
-const CLASSIC_GENERATIONS_KEY = "pokebattle.classicGenerations";
 let pokemonOffer = [];
 let selectedPokemon = [];
 let itemOffer = [];
@@ -59,7 +57,7 @@ let playerPokemonNeedsEntry = true;
 let currentTrainer = 1;
 let runTrainers = [];
 let lastRunResult = null;
-let classicGenerationIds = loadClassicGenerations();
+let classicGenerationIds = [...ALL_GENERATION_IDS];
 let playerPokemonPool = FINAL_EVOLUTION_IDS;
 let enemyPokemonPool = null;
 let gameMode = "classic";
@@ -75,26 +73,6 @@ let itemsContinuation = null;
 let routeBattle = null;
 let shopProducts = [];
 
-function loadClassicGenerations() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(CLASSIC_GENERATIONS_KEY));
-        if (Array.isArray(saved) && saved.length > 0 && saved.every(id => ALL_GENERATION_IDS.includes(id))) {
-            return saved;
-        }
-    } catch (error) {
-        console.warn(error);
-    }
-    return [...ALL_GENERATION_IDS];
-}
-
-function saveClassicGenerations() {
-    try {
-        localStorage.setItem(CLASSIC_GENERATIONS_KEY, JSON.stringify(classicGenerationIds));
-    } catch (error) {
-        console.warn(error);
-    }
-}
-
 function showScreen(selector) {
     document.querySelectorAll("main > section").forEach(section => {
         section.classList.toggle("hidden", !section.matches(selector));
@@ -102,44 +80,31 @@ function showScreen(selector) {
     window.scrollTo(0, 0);
 }
 
-function showClassicSetup() {
-    renderClassicSetup();
-    showScreen("#classicSetupScreen");
-}
-
-function renderClassicSetup() {
-    renderGenerationFilter(classicGenerationIds, toggleClassicGeneration);
-    const count = classicGenerationIds.length;
-    document.querySelector("#generationCount").textContent = `${count} de ${ALL_GENERATION_IDS.length} generaciones`;
-    document.querySelector("#startClassicBtn").disabled = count === 0;
+// El clásico empieza siempre con las nueve regiones marcadas
+function startClassicMode() {
+    classicGenerationIds = [...ALL_GENERATION_IDS];
+    startClassicSelection();
 }
 
 function toggleClassicGeneration(generationId) {
-    if (classicGenerationIds.includes(generationId)) {
-        classicGenerationIds = classicGenerationIds.filter(id => id !== generationId);
-    } else {
-        classicGenerationIds = [...classicGenerationIds, generationId].sort((a, b) => a - b);
+    const isSelected = classicGenerationIds.includes(generationId);
+    if (isSelected && classicGenerationIds.length === 1) {
+        return;
     }
-    saveClassicGenerations();
-    renderClassicSetup();
-}
-
-function setAllClassicGenerations(selectAll) {
-    classicGenerationIds = selectAll ? [...ALL_GENERATION_IDS] : [];
-    saveClassicGenerations();
-    renderClassicSetup();
+    classicGenerationIds = isSelected
+        ? classicGenerationIds.filter(id => id !== generationId)
+        : [...classicGenerationIds, generationId].sort((a, b) => a - b);
+    startClassicSelection();
 }
 
 async function startClassicSelection() {
-    if (classicGenerationIds.length === 0) {
-        return;
-    }
     gameMode = "classic";
     document.querySelector("#startRunBtn").textContent = "Empezar la run";
     document.querySelector("#itemOfferTitle").textContent = "Objetos disponibles";
     playerPokemonPool = getIdsInGenerations(classicGenerationIds, FINAL_EVOLUTION_IDS);
     enemyPokemonPool = getIdsInGenerations(classicGenerationIds);
     selectedPokemon = [];
+    renderGenerationChips("#generationChips", classicGenerationIds, toggleClassicGeneration);
     pokemonOffer = await withLoading("Buscando Pokémon salvajes...", () => getUniqueRandomPokemon(12, 2, playerPokemonPool));
     renderPokemonCards(pokemonOffer, selectedPokemon, togglePokemonSelection);
     updateSelectionUI();
@@ -179,13 +144,37 @@ async function confirmTeam() {
 }
 
 function renderItemSelection() {
-    if (gameMode === "adventure") {
-        renderItemTeam(selectedPokemon, selectedItemPokemonId, selectItemPokemon, unequipToBag);
-        renderItemOffer(getAdventureItems(), selectedPokemon, equipItem, "Tu mochila está vacía. Consigue objetos en las tiendas y eventos de las rutas.");
+    const isAdventure = gameMode === "adventure";
+    document.querySelector("#medicineSection").classList.toggle("hidden", !isAdventure);
+    if (isAdventure) {
+        renderItemTeam(selectedPokemon, selectedItemPokemonId, selectItemPokemon, unequipToBag, true);
+        renderItemOffer(getAdventureItems(), selectedPokemon, equipItem, "No tienes objetos para equipar. Consigue más en las tiendas y eventos de las rutas.");
+        renderMedicines("#medicineGrid", getBagMedicines(), useMedicine);
         return;
     }
     renderItemTeam(selectedPokemon, selectedItemPokemonId, selectItemPokemon);
     renderItemOffer(itemOffer, selectedPokemon, equipItem);
+}
+
+function getBagMedicines() {
+    const groups = new Map();
+    adventure.bag.filter(item => item.medicine).forEach(item => {
+        const group = groups.get(item.id) ?? { ...item, count: 0, usable: canUseMedicine(item.id, selectedPokemon) };
+        group.count++;
+        groups.set(item.id, group);
+    });
+    return [...groups.values()];
+}
+
+function useMedicine(medicine) {
+    const bagItem = adventure.bag.find(item => item.medicine && item.id === medicine.id);
+    if (!bagItem || !canUseMedicine(medicine.id, selectedPokemon)) {
+        return;
+    }
+    applyMedicine(medicine.id, selectedPokemon);
+    adventure.bag = adventure.bag.filter(item => item !== bagItem);
+    saveCurrentAdventure();
+    renderItemSelection();
 }
 
 function unequipToBag(pokemon) {
@@ -214,11 +203,8 @@ function equipItem(item) {
 }
 
 function init() {
-    document.querySelector("#classicModeBtn").addEventListener("click", showClassicSetup);
+    document.querySelector("#classicModeBtn").addEventListener("click", startClassicMode);
     document.querySelector("#backToModesBtn").addEventListener("click", () => showScreen("#modeScreen"));
-    document.querySelector("#startClassicBtn").addEventListener("click", startClassicSelection);
-    document.querySelector("#selectAllGenerationsBtn").addEventListener("click", () => setAllClassicGenerations(true));
-    document.querySelector("#clearGenerationsBtn").addEventListener("click", () => setAllClassicGenerations(false));
     document.querySelector("#adventureNewBtn").addEventListener("click", startNewAdventure);
     document.querySelector("#adventureContinueBtn").addEventListener("click", continueAdventure);
     document.querySelector("#starterBackBtn").addEventListener("click", () => showScreen("#modeScreen"));
@@ -1069,7 +1055,7 @@ function confirmStarter() {
 
 function getAdventureItems() {
     const equippedItems = selectedPokemon.filter(pokemon => pokemon.item).map(pokemon => pokemon.item);
-    return [...adventure.bag, ...equippedItems];
+    return [...adventure.bag.filter(item => !item.medicine), ...equippedItems];
 }
 
 function showAdventureItems(onContinue) {
@@ -1373,6 +1359,11 @@ function handleRouteBattleLost() {
 async function runRouteEvent() {
     const event = pickEvent();
     const region = getRegion(adventure.plan.regionIndex).region;
+    // El combate avanza la ruta al terminar, como una parada de entrenador
+    if (event === "trainer") {
+        await startRouteTrainerBattle();
+        return;
+    }
     advanceRoute();
     if (event === "wild") {
         await showAdventureReward({
@@ -1382,24 +1373,11 @@ async function runRouteEvent() {
         });
         return;
     }
-    if (event === "item") {
-        const offer = await withLoading("Buscando...", getRandomItemOffer);
-        const item = createBagItem(offer.find(candidate => !candidate.rare) ?? offer[0]);
-        adventure.bag.push(item);
-        saveCurrentAdventure();
-        showRouteMessage("Objeto encontrado", `Has encontrado ${item.name} entre la hierba. Ya está en tu mochila.`);
-        return;
-    }
-    if (event === "training") {
-        const bonus = applyTraining(selectedPokemon);
-        saveCurrentAdventure();
-        showRouteMessage("Entrenamiento", `Tu equipo entrena en la ruta: +${bonus} a Ataque, Ataque Especial, Defensa, Defensa Especial y Velocidad.`);
-        return;
-    }
-    const money = getFoundMoney(adventure.stage);
-    adventure.money += money;
+    const offer = await withLoading("Buscando...", getRandomItemOffer);
+    const item = createBagItem(offer.find(candidate => !candidate.rare) ?? offer[0]);
+    adventure.bag.push(item);
     saveCurrentAdventure();
-    showRouteMessage("Dinero encontrado", `Has encontrado ${formatMoney(money)} en el camino.`);
+    showRouteMessage("Objeto encontrado", `Has encontrado ${item.name} entre la hierba. Ya está en tu mochila.`);
 }
 
 // ---------- Tienda ----------
@@ -1432,7 +1410,8 @@ function buyProduct(product) {
         adventure.bag.push(createBagItem(item));
         product.sold = true;
     } else {
-        applyMedicine(product.id, selectedPokemon);
+        const { id, name, description, sprite } = product;
+        adventure.bag.push(createBagItem({ id, name, description, sprite, medicine: true }));
     }
     saveCurrentAdventure();
     renderShopScreen();

@@ -33,24 +33,6 @@
                     </div>
                 </div>
             </section>
-            <section id="classicSetupScreen" class="classic-setup hidden">
-                <button id="backToModesBtn" class="back-button" type="button">Modos de juego</button>
-                <div class="screen-header">
-                    <div class="selection-header">
-                        <h1>Modo clásico</h1>
-                        <p>Elige las generaciones de las que salen tus Pokémon y los de los rivales.</p>
-                    </div>
-                    <div class="selection-toolbar">
-                        <span id="generationCount">9 de 9 generaciones</span>
-                        <button id="startClassicBtn">Continuar</button>
-                    </div>
-                </div>
-                <div class="generation-actions">
-                    <button id="selectAllGenerationsBtn" class="secondary-button" type="button">Todas</button>
-                    <button id="clearGenerationsBtn" class="secondary-button" type="button">Ninguna</button>
-                </div>
-                <div id="generationGrid" class="generation-grid"></div>
-            </section>
             <section id="adventureStarterScreen" class="adventure-screen hidden">
                 <button id="starterBackBtn" class="back-button" type="button">Modos de juego</button>
                 <div class="screen-header">
@@ -106,7 +88,7 @@
                 <div class="screen-header">
                     <div class="selection-header">
                         <h1>Tienda</h1>
-                        <p>Los objetos van a tu mochila; las medicinas se usan al momento en todo el equipo.</p>
+                        <p>Todo lo que compres va a tu mochila. Las medicinas se usan desde ella cuando las necesites.</p>
                     </div>
                     <div class="selection-toolbar">
                         <div class="wallet">
@@ -127,16 +109,18 @@
                 </div>
             </section>
             <section class="selection hidden">
+                <button id="backToModesBtn" class="back-button" type="button">Modos de juego</button>
                 <div class="screen-header">
                     <div class="selection-header">
                         <h1>Elige tus Pokémon</h1>
-                        <p>Escoge 6 de estos 12 para formar el equipo de tu run.</p>
+                        <p>Escoge 6 de estos 12 para formar el equipo de tu run. Quita o añade regiones para cambiar de dónde salen tus Pokémon y los de los rivales.</p>
                     </div>
                     <div class="selection-toolbar">
                         <span id="selectionCount">0 / 6 seleccionados</span>
                         <button id="continueBtn" disabled>Continuar</button>
                     </div>
                 </div>
+                <div id="generationChips" class="generation-chips" role="group" aria-label="Regiones"></div>
                 <div id="pokemonGrid" class="pokemon-grid"></div>
             </section>
             <section id="itemScreen" class="item-screen hidden">
@@ -155,6 +139,10 @@
                     <div class="item-section">
                         <h2 id="itemOfferTitle">Objetos disponibles</h2>
                         <div id="itemOfferGrid" class="item-offer-grid"></div>
+                    </div>
+                    <div id="medicineSection" class="item-section hidden">
+                        <h2>Medicinas</h2>
+                        <div id="medicineGrid" class="item-offer-grid"></div>
                     </div>
                 </div>
             </section>

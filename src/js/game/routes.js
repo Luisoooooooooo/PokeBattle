@@ -12,7 +12,7 @@ export const NODE_TYPES = {
     },
     event: {
         label: "Evento",
-        description: "Algo inesperado: un Pokémon salvaje, un objeto, dinero o un entrenamiento.",
+        description: "Algo inesperado: un Pokémon salvaje, un objeto o un entrenador que te reta.",
         icon: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png"
     },
     shop: {
@@ -46,8 +46,6 @@ export const MEDICINES = [
 
 const NORMAL_ITEM_PRICE = 600;
 const RARE_ITEM_PRICE = 2000;
-const TRAINING_BONUS = 5;
-const TRAINED_STATS = ["attack", "specialAttack", "defense", "specialDefense", "speed"];
 
 function pickWeighted(weights) {
     const entries = Object.entries(weights);
@@ -90,6 +88,13 @@ export function createBagItem(item) {
     return { ...item, uid: `${item.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}` };
 }
 
+export function canUseMedicine(medicineId, team) {
+    if (medicineId === "revive") {
+        return team.some(pokemon => pokemon.fainted);
+    }
+    return team.some(pokemon => !pokemon.fainted && pokemon.currentHp < pokemon.maxHp);
+}
+
 export function applyMedicine(medicineId, team) {
     team.forEach(pokemon => {
         const halfHp = Math.ceil(pokemon.maxHp / 2);
@@ -103,26 +108,14 @@ export function applyMedicine(medicineId, team) {
     });
 }
 
-export function applyTraining(team) {
-    team.forEach(pokemon => {
-        TRAINED_STATS.forEach(stat => {
-            pokemon[stat] += TRAINING_BONUS;
-        });
-    });
-    return TRAINING_BONUS;
-}
-
+// El dinero solo se gana combatiendo: los eventos traen un Pokémon, un objeto o un combate
 export function pickEvent() {
-    return pickWeighted({ wild: 30, item: 25, training: 20, money: 25 });
+    return pickWeighted({ wild: 40, trainer: 30, item: 30 });
 }
 
 // Dinero según lo avanzada que esté la región (stage = índice del próximo combate)
 export function getRouteTrainerReward(stage) {
     return 200 + stage * 100;
-}
-
-export function getFoundMoney(stage) {
-    return 150 + stage * 75;
 }
 
 export function getBattleReward(kind, stage) {
