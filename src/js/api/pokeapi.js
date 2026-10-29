@@ -61,11 +61,6 @@ export async function getRandomItemOffer() {
     return itemOffer;
 }
 
-export async function getRandomPokemon() {
-    const randomId = Math.floor(Math.random() * MAX_POKEMON_ID) + 1;
-    return getPokemon(randomId);
-}
-
 function canAddPokemonByTypeLimit(pokemon, typeCounts, maxPerType) {
     return pokemon.types.every(type => {
         return (typeCounts[type] ?? 0) < maxPerType;
@@ -78,20 +73,47 @@ function addPokemonTypesToCount(pokemon, typeCounts) {
     });
 }
 
+function getRandomUntriedIds(amount, triedIds) {
+    const ids = [];
+    while (ids.length < amount && triedIds.size < MAX_POKEMON_ID) {
+        const randomId = Math.floor(Math.random() * MAX_POKEMON_ID) + 1;
+        if (triedIds.has(randomId)) {
+            continue;
+        }
+        triedIds.add(randomId);
+        ids.push(randomId);
+    }
+    return ids;
+}
+
 export async function getUniqueRandomPokemon(count, maxPerType = null) {
     const pokemonMap = new Map();
     const typeCounts = {};
+    const triedIds = new Set();
     while (pokemonMap.size < count) {
-        const pokemon = await getRandomPokemon();
-        if (pokemonMap.has(pokemon.id)) {
-            continue;
+        // Se piden el doble de los que faltan porque algunos se descartan por el límite de tipos
+        const batchIds = getRandomUntriedIds((count - pokemonMap.size) * 2, triedIds);
+        if (batchIds.length === 0) {
+            throw new Error("No hay suficientes Pokémon disponibles");
         }
-        if (maxPerType !== null && !canAddPokemonByTypeLimit(pokemon, typeCounts, maxPerType)) {
-            continue;
+        const results = await Promise.allSettled(batchIds.map(id => getPokemon(id)));
+        const loadedPokemon = results
+            .filter(result => result.status === "fulfilled")
+            .map(result => result.value);
+        if (loadedPokemon.length === 0) {
+            throw results[0].reason;
         }
-        pokemonMap.set(pokemon.id, pokemon);
-        if (maxPerType !== null) {
-            addPokemonTypesToCount(pokemon, typeCounts);
+        for (const pokemon of loadedPokemon) {
+            if (pokemonMap.size >= count) {
+                break;
+            }
+            if (maxPerType !== null && !canAddPokemonByTypeLimit(pokemon, typeCounts, maxPerType)) {
+                continue;
+            }
+            pokemonMap.set(pokemon.id, pokemon);
+            if (maxPerType !== null) {
+                addPokemonTypesToCount(pokemon, typeCounts);
+            }
         }
     }
 
