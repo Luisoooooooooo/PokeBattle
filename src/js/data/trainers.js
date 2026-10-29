@@ -111,3 +111,17 @@ export function getRandomTrainers(amount = 5) {
         };
     });
 }
+
+// Para el modo aventura: más entrenadores que clases, así que los sprites se repiten
+export function getRandomTrainerIdentities(amount) {
+    const shuffledClasses = shuffle(TRAINER_CLASSES);
+    const usedNames = [];
+    return Array.from({ length: amount }, (_, index) => {
+        const trainerClass = shuffledClasses[index % shuffledClasses.length];
+        return {
+            trainerName: getRandomName(trainerClass.gender, usedNames),
+            gender: trainerClass.gender,
+            sprite: trainerClass.sprite
+        };
+    });
+}

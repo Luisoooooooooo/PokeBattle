@@ -23,11 +23,14 @@
                         <p>Elige 6 de 12 Pokémon y vence a 5 entrenadores seguidos. Los PS no se recuperan entre combates.</p>
                         <span class="mode-card-action">Jugar</span>
                     </button>
-                    <button id="adventureModeBtn" class="mode-card" type="button" disabled>
+                    <div class="mode-card adventure-mode-card">
                         <h2>Aventura</h2>
-                        <p>Empieza en Kanto, vence a los 8 líderes y al Alto Mando, y viaja a la siguiente región.</p>
-                        <span class="mode-card-action">Próximamente</span>
-                    </button>
+                        <p id="adventureModeText">Empieza en Kanto con un compañero, vence a los 8 líderes y al Alto Mando, y viaja a la siguiente región.</p>
+                        <div class="mode-card-buttons">
+                            <button id="adventureContinueBtn" type="button" class="hidden">Continuar</button>
+                            <button id="adventureNewBtn" type="button">Nueva aventura</button>
+                        </div>
+                    </div>
                 </div>
             </section>
             <section id="classicSetupScreen" class="classic-setup hidden">
@@ -47,6 +50,45 @@
                     <button id="clearGenerationsBtn" class="secondary-button" type="button">Ninguna</button>
                 </div>
                 <div id="generationGrid" class="generation-grid"></div>
+            </section>
+            <section id="adventureStarterScreen" class="adventure-screen hidden">
+                <button id="starterBackBtn" class="back-button" type="button">Modos de juego</button>
+                <div class="screen-header">
+                    <div class="selection-header">
+                        <h1>Elige tu compañero</h1>
+                        <p id="starterMessage">Tu aventura empieza en Kanto con uno de estos tres Pokémon.</p>
+                    </div>
+                    <div class="selection-toolbar">
+                        <button id="confirmStarterBtn" disabled>Empezar la aventura</button>
+                    </div>
+                </div>
+                <div id="starterGrid" class="pokemon-grid starter-grid"></div>
+            </section>
+            <section id="adventureRewardScreen" class="adventure-screen hidden">
+                <div class="screen-header">
+                    <div class="selection-header">
+                        <h1>Nuevo compañero</h1>
+                        <p id="rewardMessage">Elige un Pokémon para unirlo a tu equipo.</p>
+                    </div>
+                    <div class="selection-toolbar">
+                        <button id="skipRewardBtn" class="secondary-button" type="button">Seguir sin cambios</button>
+                        <button id="acceptRewardBtn" disabled>Añadir al equipo</button>
+                    </div>
+                </div>
+                <div id="rewardGrid" class="pokemon-grid starter-grid"></div>
+                <div id="rewardReplaceSection" class="reward-replace hidden">
+                    <h2>¿A quién sustituye?</h2>
+                    <p>Tu equipo ya tiene 6 Pokémon. El que elijas dejará el equipo.</p>
+                    <div id="rewardTeamGrid" class="pokemon-grid"></div>
+                </div>
+            </section>
+            <section id="adventureMessageScreen" class="trainer-defeated-screen adventure-message-screen hidden">
+                <div class="trainer-defeated">
+                    <h1 id="adventureMessageTitle">Medalla conseguida</h1>
+                    <p id="adventureMessageText"></p>
+                    <div id="adventureMessageStages" class="adventure-progress"></div>
+                    <button id="adventureMessageBtn">Continuar</button>
+                </div>
             </section>
             <section class="selection hidden">
                 <div class="screen-header">
@@ -85,6 +127,7 @@
                     <img id="trainerIntroSprite" class="trainer-intro-sprite" src="" alt="">
                     <h1 id="trainerIntroName">Entrenador</h1>
                     <p>Te reta a un combate. <span id="trainerIntroProgress"></span></p>
+                    <div id="trainerIntroStages" class="adventure-progress hidden"></div>
                     <button id="startTrainerBattleBtn">¡A combatir!</button>
                 </div>
             </section>

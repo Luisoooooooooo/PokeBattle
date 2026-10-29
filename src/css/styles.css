@@ -1814,6 +1814,181 @@ button:disabled {
 
 
 /* =========================================================
+   MODO AVENTURA
+   ========================================================= */
+
+.adventure-screen,
+.adventure-message-screen {
+  width: 100%;
+  animation: screen-in 0.6s var(--ease) both;
+}
+
+.mode-card-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.starter-grid {
+  grid-template-columns: repeat(3, minmax(0, 280px));
+}
+
+.reward-replace {
+  margin-top: 56px;
+}
+
+.reward-replace > h2 {
+  margin-bottom: 8px;
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.reward-replace > p {
+  margin-bottom: 20px;
+  color: var(--text-2);
+}
+
+.selection-toolbar .secondary-button {
+  min-width: 0;
+}
+
+
+/* =========================================================
+   PROGRESO DE LA REGIÓN
+   ========================================================= */
+
+.adventure-progress {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px 28px;
+  margin: 0 0 36px;
+}
+
+.stage-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.stage-group ol {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage-group > span {
+  color: var(--text-3);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+}
+
+.stage-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--type-color, var(--text-3)) 18%, var(--surface));
+  color: var(--text-3);
+  font-size: 0.875rem;
+  line-height: 1;
+  transition:
+    background 0.3s ease,
+    transform 0.3s var(--ease);
+}
+
+.stage-marker img {
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) invert(1);
+  opacity: 0.35;
+}
+
+.stage-marker.done {
+  background: var(--type-color, var(--accent));
+  color: #ffffff;
+}
+
+.stage-marker.done img {
+  opacity: 1;
+}
+
+.stage-marker.current {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-text);
+  transform: scale(1.1);
+}
+
+.stage-marker.current img {
+  opacity: 0.85;
+}
+
+.stage-champion.done {
+  background: var(--warning);
+  color: #1d1d1f;
+}
+
+@media (max-width: 1000px) {
+  .starter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .adventure-screen {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .adventure-screen .screen-header {
+    display: contents;
+  }
+
+  .adventure-screen .back-button {
+    align-self: flex-start;
+  }
+
+  .adventure-screen .selection-header {
+    margin-bottom: 24px;
+  }
+
+  .adventure-screen .selection-toolbar {
+    order: 2;
+    margin-top: 20px;
+  }
+
+  .adventure-screen .reward-replace {
+    order: 1;
+  }
+
+  .starter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stage-marker {
+    width: 24px;
+    height: 24px;
+  }
+
+  .stage-marker img {
+    width: 11px;
+    height: 11px;
+  }
+
+  .stage-group ol {
+    gap: 4px;
+  }
+}
+
+
+/* =========================================================
    MOVIMIENTO REDUCIDO
    ========================================================= */
 
@@ -2086,4 +2261,9 @@ button:disabled {
   .end-actions button {
     width: 100%;
   }
+}
+
+.adventure-mode-card:hover {
+  background: var(--surface);
+  transform: none;
 }

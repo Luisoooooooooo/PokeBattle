@@ -122,3 +122,68 @@ export async function getUniqueRandomPokemon(count, maxPerType = null, idPool = 
 
     return [...pokemonMap.values()];
 }
+
+
+const TYPE_API_BASE_URL = "https://pokeapi.co/api/v2/type";
+const TYPE_INDEX_KEY = "pokebattle.typeIndex.v1";
+const POKEMON_TYPES = [
+    "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground",
+    "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"
+];
+
+function readCachedTypeIndex() {
+    try {
+        const cached = JSON.parse(localStorage.getItem(TYPE_INDEX_KEY));
+        if (cached && POKEMON_TYPES.every(type => Array.isArray(cached[type]))) {
+            return cached;
+        }
+    } catch (error) {
+        console.warn(error);
+    }
+    return null;
+}
+
+// Devuelve { tipo: [IDs de especie] } para los 18 tipos; se guarda en el navegador tras la primera vez
+export async function getTypeIndex() {
+    const cached = readCachedTypeIndex();
+    if (cached) {
+        return cached;
+    }
+    const entries = await Promise.all(POKEMON_TYPES.map(async type => {
+        const response = await fetch(`${TYPE_API_BASE_URL}/${type}`);
+        if (!response.ok) {
+            throw new Error(`Error al cargar el tipo ${type}`);
+        }
+        const data = await response.json();
+        const ids = data.pokemon
+            .map(entry => Number(entry.pokemon.url.split("/").filter(Boolean).pop()))
+            .filter(id => id <= MAX_POKEMON_ID);
+        return [type, ids];
+    }));
+    const typeIndex = Object.fromEntries(entries);
+    try {
+        localStorage.setItem(TYPE_INDEX_KEY, JSON.stringify(typeIndex));
+    } catch (error) {
+        console.warn(error);
+    }
+    return typeIndex;
+}
+
+// Elige count Pokémon recorriendo las listas en orden: solo pasa a la siguiente si la anterior no llega
+export async function getPokemonFromPools(count, pools, maxPerType = null) {
+    const team = [];
+    for (const pool of pools) {
+        const remaining = count - team.length;
+        if (remaining <= 0) {
+            break;
+        }
+        const chosenIds = new Set(team.map(pokemon => pokemon.id));
+        const available = pool.filter(id => !chosenIds.has(id));
+        if (available.length === 0) {
+            continue;
+        }
+        const picked = await getUniqueRandomPokemon(Math.min(remaining, available.length), maxPerType, available);
+        team.push(...picked);
+    }
+    return team;
+}

@@ -1,4 +1,4 @@
-import { getUniqueRandomPokemon, getRandomItemOffer } from "./api/pokeapi.js";
+import { getUniqueRandomPokemon, getRandomItemOffer, getTypeIndex, getPokemonFromPools } from "./api/pokeapi.js";
 import { renderPokemonCards } from "./ui/pokemon-cards.js";
 import { renderItemTeam, renderItemOffer } from "./ui/item-selection.js";
 import { resolveMatchup } from "./game/battle.js";
@@ -7,6 +7,25 @@ import { formatPokemonName, formatTypeName } from "./utils/formatters.js";
 import { FINAL_EVOLUTION_IDS } from "./data/final-evolutions.js";
 import { ALL_GENERATION_IDS, getIdsInGenerations } from "./data/generations.js";
 import { renderGenerationFilter } from "./ui/generation-filter.js";
+import { renderAdventureProgress } from "./ui/adventure.js";
+import {
+    GYM_COUNT,
+    ELITE_FOUR_COUNT,
+    STAGES_PER_REGION,
+    MAX_TEAM_SIZE,
+    getRegion,
+    isLastRegion,
+    createRegionPlan,
+    getStageInfo,
+    getEnemyTeamRequest,
+    getStarterPools,
+    getRewardPool,
+    healTeam,
+    getStageMarkers,
+    saveAdventure,
+    loadAdventure,
+    clearAdventure
+} from "./game/adventure.js";
 
 const TEAM_SIZE = 6;
 const TOTAL_TRAINERS = 5;
@@ -25,6 +44,15 @@ let lastRunResult = null;
 let classicGenerationIds = loadClassicGenerations();
 let playerPokemonPool = FINAL_EVOLUTION_IDS;
 let enemyPokemonPool = null;
+let gameMode = "classic";
+let adventure = null;
+let typeIndex = null;
+let starterOffer = [];
+let selectedStarter = null;
+let rewardOffer = [];
+let selectedRewardId = null;
+let replacedPokemonId = null;
+let adventureMessageAction = null;
 
 function loadClassicGenerations() {
     try {
@@ -85,6 +113,8 @@ async function startClassicSelection() {
     if (classicGenerationIds.length === 0) {
         return;
     }
+    gameMode = "classic";
+    document.querySelector("#startRunBtn").textContent = "Empezar la run";
     playerPokemonPool = getIdsInGenerations(classicGenerationIds, FINAL_EVOLUTION_IDS);
     enemyPokemonPool = getIdsInGenerations(classicGenerationIds);
     selectedPokemon = [];
@@ -151,10 +181,18 @@ function init() {
     document.querySelector("#startClassicBtn").addEventListener("click", startClassicSelection);
     document.querySelector("#selectAllGenerationsBtn").addEventListener("click", () => setAllClassicGenerations(true));
     document.querySelector("#clearGenerationsBtn").addEventListener("click", () => setAllClassicGenerations(false));
+    document.querySelector("#adventureNewBtn").addEventListener("click", startNewAdventure);
+    document.querySelector("#adventureContinueBtn").addEventListener("click", continueAdventure);
+    document.querySelector("#starterBackBtn").addEventListener("click", () => showScreen("#modeScreen"));
+    document.querySelector("#confirmStarterBtn").addEventListener("click", confirmStarter);
+    document.querySelector("#acceptRewardBtn").addEventListener("click", acceptAdventureReward);
+    document.querySelector("#skipRewardBtn").addEventListener("click", showAdventureItems);
+    document.querySelector("#adventureMessageBtn").addEventListener("click", () => adventureMessageAction?.());
+    renderAdventureModeCard();
     const continueBtn = document.querySelector("#continueBtn");
     continueBtn.addEventListener("click", confirmTeam);
     const startRunBtn = document.querySelector("#startRunBtn");
-    startRunBtn.addEventListener("click", startRun);
+    startRunBtn.addEventListener("click", handleItemScreenContinue);
     const startTrainerBattleBtn = document.querySelector("#startTrainerBattleBtn");
     startTrainerBattleBtn.addEventListener("click", startTrainerBattle);
     const continueTrainerBtn = document.querySelector("#continueTrainerBtn");
@@ -209,8 +247,8 @@ async function withLoading(message, task) {
     }
 }
 
-async function loadEnemyTeam() {
-    enemyTeam = await withLoading("Buscando al siguiente rival...", () => getUniqueRandomPokemon(6, 2, enemyPokemonPool));
+async function loadEnemyTeam(fetchTeam = () => getUniqueRandomPokemon(6, 2, enemyPokemonPool)) {
+    enemyTeam = await withLoading("Buscando al siguiente rival...", fetchTeam);
     activeEnemyPokemon = enemyTeam[0];
     const enemyPokeballs = document.querySelector("#enemyPokeballs");
     enemyPokeballs.innerHTML = "";
@@ -370,7 +408,7 @@ async function startNextTrainer() {
     document.querySelector("#trainerDefeatedScreen").classList.add("hidden");
     currentTrainer++;
     updateTrainerUI();
-    addBattleLogMessage(`Comienza el combate contra el Entrenador ${currentTrainer}.`, "important");
+    addBattleLogMessage(`Comienza el combate contra ${getCurrentTrainer().name}.`, "important");
     addBattleLogMessage(`${formatPokemonName(activeEnemyPokemon.name)} entra al combate.`);
     document.querySelector("#resolveMatchupBtn").disabled = false;
     showTrainerIntro();
@@ -483,16 +521,17 @@ async function handleResolveMatchup() {
     }
     if (enemyFainted && !hasLivingEnemyPokemon()) {
         activeEnemyPokemon = null;
-        addBattleLogMessage(`¡Has derrotado al Entrenador ${currentTrainer}!`, "important");
+        addBattleLogMessage(`¡Has derrotado a ${getCurrentTrainer().name}!`, "important");
         resolveMatchupBtn.disabled = true;
-        if (currentTrainer < TOTAL_TRAINERS) {
+        if (gameMode === "adventure") {
+            await handleAdventureTrainerDefeated();
+        } else if (currentTrainer < TOTAL_TRAINERS) {
             await wait(1000);
             const trainer = runTrainers[currentTrainer - 1];
             const trainersLeft = TOTAL_TRAINERS - currentTrainer;
             document.querySelector("#defeatedTrainerName").textContent = trainer.name;
             document.querySelector("#defeatedProgress").textContent = trainersLeft === 1 ? "Solo queda 1 entrenador." : `Quedan ${trainersLeft} entrenadores.`;
-            document.querySelector("#battleScreen").classList.add("hidden");
-            document.querySelector("#trainerDefeatedScreen").classList.remove("hidden");
+            showScreen("#trainerDefeatedScreen");
         } else {
             await wait(1000);
             showResultScreen(true);
@@ -505,7 +544,11 @@ async function handleResolveMatchup() {
         resolveMatchupBtn.disabled = true;
         renderBattleTeam();
         await wait(1000);
-        showResultScreen(false);
+        if (gameMode === "adventure") {
+            handleAdventureTeamDefeated();
+        } else {
+            showResultScreen(false);
+        }
         return;
     }
     if (enemyFainted) {
@@ -604,29 +647,47 @@ function renderBattleTeam() {
     });
 }
 
+function getCurrentTrainer() {
+    if (gameMode === "adventure") {
+        return getStageInfo(adventure.plan, adventure.stage).trainer;
+    }
+    return runTrainers[currentTrainer - 1];
+}
+
+function getTrainerProgressText() {
+    if (gameMode === "adventure") {
+        const region = getRegion(adventure.plan.regionIndex).region;
+        return `${region} · ${getStageInfo(adventure.plan, adventure.stage).progressText}`;
+    }
+    return `Entrenador ${currentTrainer} de ${TOTAL_TRAINERS}`;
+}
+
 function updateTrainerUI() {
     const trainerName = document.querySelector("#trainerName");
     const trainerSprite = document.querySelector("#trainerSprite");
-    const trainer = runTrainers[currentTrainer - 1];
+    const trainer = getCurrentTrainer();
     trainerName.textContent = trainer.name;
-    document.querySelector("#trainerProgress").textContent = `Entrenador ${currentTrainer} de ${TOTAL_TRAINERS}`;
+    document.querySelector("#trainerProgress").textContent = getTrainerProgressText();
     trainerSprite.src = trainer.sprite;
     trainerSprite.alt = trainer.name;
 }
 
 function startTrainerBattle() {
-    document.querySelector("#trainerIntroScreen").classList.add("hidden");
-    document.querySelector("#battleScreen").classList.remove("hidden");
+    showScreen("#battleScreen");
 }
 
 function showTrainerIntro() {
-    const trainer = runTrainers[currentTrainer - 1];
+    const trainer = getCurrentTrainer();
+    const stages = document.querySelector("#trainerIntroStages");
+    stages.classList.toggle("hidden", gameMode !== "adventure");
+    if (gameMode === "adventure") {
+        renderAdventureProgress("#trainerIntroStages", getStageMarkers(adventure.plan, adventure.stage));
+    }
     document.querySelector("#trainerIntroSprite").src = trainer.sprite;
     document.querySelector("#trainerIntroSprite").alt = trainer.name;
     document.querySelector("#trainerIntroName").textContent = trainer.name;
-    document.querySelector("#trainerIntroProgress").textContent = `Entrenador ${currentTrainer} de ${TOTAL_TRAINERS}.`;
-    document.querySelector("#trainerIntroScreen").classList.remove("hidden");
-    document.querySelector("#battleScreen").classList.add("hidden");
+    document.querySelector("#trainerIntroProgress").textContent = `${getTrainerProgressText()}.`;
+    showScreen("#trainerIntroScreen");
 }
 
 function calculateRunScore(trainersDefeated) {
@@ -885,6 +946,268 @@ async function startRun() {
     updateBattlePokemonUI(activePokemon, "player");
     renderBattleTeam();
     showTrainerIntro();
+}
+
+function renderAdventureModeCard() {
+    const saved = loadAdventure();
+    const continueBtn = document.querySelector("#adventureContinueBtn");
+    const newBtn = document.querySelector("#adventureNewBtn");
+    const text = document.querySelector("#adventureModeText");
+    continueBtn.classList.toggle("hidden", !saved);
+    newBtn.classList.toggle("secondary-button", Boolean(saved));
+    if (!saved) {
+        text.textContent = "Empieza en Kanto con un compañero, vence a los 8 líderes y al Alto Mando, y viaja a la siguiente región.";
+        return;
+    }
+    const region = getRegion(saved.plan.regionIndex).region;
+    const nextTrainer = getStageInfo(saved.plan, saved.stage).trainer.name;
+    const badges = saved.badges ?? 0;
+    text.textContent = `Partida guardada en ${region}: ${badges} ${badges === 1 ? "medalla" : "medallas"} y ${saved.team.length} Pokémon en el equipo. Próximo combate: ${nextTrainer}.`;
+}
+
+async function ensureTypeIndex() {
+    if (!typeIndex) {
+        typeIndex = await withLoading("Preparando la aventura...", getTypeIndex);
+    }
+    return typeIndex;
+}
+
+function saveCurrentAdventure() {
+    saveAdventure({
+        plan: adventure.plan,
+        stage: adventure.stage,
+        badges: adventure.badges,
+        team: selectedPokemon
+    });
+}
+
+async function startNewAdventure() {
+    if (loadAdventure() && !window.confirm("¿Empezar una aventura nueva? Se borrará la partida guardada.")) {
+        return;
+    }
+    gameMode = "adventure";
+    await ensureTypeIndex();
+    adventure = { plan: createRegionPlan(0, typeIndex), stage: 0, badges: 0 };
+    selectedPokemon = [];
+    selectedStarter = null;
+    const starterPools = getStarterPools(0, typeIndex);
+    starterOffer = await withLoading("Buscando compañeros...", async () => {
+        const starters = [];
+        for (const slotPools of starterPools) {
+            const usedIds = new Set(starters.map(pokemon => pokemon.id));
+            const [starter] = await getPokemonFromPools(1, slotPools.map(pool => pool.filter(id => !usedIds.has(id))));
+            starters.push(starter);
+        }
+        return starters;
+    });
+    document.querySelector("#starterMessage").textContent = `Tu aventura empieza en ${getRegion(0).region} con uno de estos tres Pokémon.`;
+    renderStarterSelection();
+    showScreen("#adventureStarterScreen");
+}
+
+function renderStarterSelection() {
+    renderPokemonCards(starterOffer, selectedStarter ? [selectedStarter] : [], pokemon => {
+        selectedStarter = pokemon;
+        renderStarterSelection();
+    }, "#starterGrid");
+    document.querySelector("#confirmStarterBtn").disabled = !selectedStarter;
+}
+
+async function confirmStarter() {
+    if (!selectedStarter) {
+        return;
+    }
+    selectedPokemon = [selectedStarter];
+    saveCurrentAdventure();
+    await showAdventureItems();
+}
+
+async function showAdventureItems() {
+    itemOffer = await withLoading("Preparando los objetos...", getRandomItemOffer);
+    selectedItemPokemonId = selectedPokemon[0]?.id ?? null;
+    document.querySelector("#startRunBtn").textContent = "Continuar";
+    renderItemSelection();
+    showScreen("#itemScreen");
+}
+
+async function continueAdventure() {
+    const saved = loadAdventure();
+    if (!saved) {
+        renderAdventureModeCard();
+        return;
+    }
+    gameMode = "adventure";
+    await ensureTypeIndex();
+    adventure = { plan: saved.plan, stage: saved.stage, badges: saved.badges ?? 0 };
+    selectedPokemon = saved.team;
+    await startAdventureStage();
+}
+
+async function startAdventureStage() {
+    const request = getEnemyTeamRequest(adventure.plan, adventure.stage, typeIndex);
+    await loadEnemyTeam(() => getPokemonFromPools(request.count, request.pools, request.maxPerType));
+    updateTrainerUI();
+    activePokemon = selectedPokemon.find(pokemon => !pokemon.fainted) ?? selectedPokemon[0];
+    playerPokemonNeedsEntry = true;
+    updateBattlePokemonUI(activePokemon, "player");
+    renderBattleTeam();
+    document.querySelector("#battleLog").innerHTML = "";
+    addBattleLogMessage(`Comienza el combate contra ${getCurrentTrainer().name}.`, "important");
+    addBattleLogMessage(`${formatPokemonName(activeEnemyPokemon.name)} entra al combate.`);
+    document.querySelector("#resolveMatchupBtn").disabled = false;
+    showTrainerIntro();
+}
+
+function showAdventureMessage({ title, text, buttonText, progress, onContinue }) {
+    document.querySelector("#adventureMessageTitle").textContent = title;
+    document.querySelector("#adventureMessageText").textContent = text;
+    document.querySelector("#adventureMessageBtn").textContent = buttonText;
+    renderAdventureProgress("#adventureMessageStages", getStageMarkers(progress.plan, progress.stage));
+    adventureMessageAction = onContinue;
+    showScreen("#adventureMessageScreen");
+}
+
+function formatBadgesLeft(badgesLeft) {
+    if (badgesLeft === 0) {
+        return "Ya puedes retar al Alto Mando.";
+    }
+    return badgesLeft === 1 ? "Te falta 1 medalla." : `Te faltan ${badgesLeft} medallas.`;
+}
+
+async function handleAdventureTrainerDefeated() {
+    const info = getStageInfo(adventure.plan, adventure.stage);
+    const regionIndex = adventure.plan.regionIndex;
+    const region = getRegion(regionIndex).region;
+    await wait(1000);
+    if (info.kind === "gym") {
+        adventure.badges++;
+        adventure.stage++;
+        healTeam(selectedPokemon);
+        saveCurrentAdventure();
+        showAdventureMessage({
+            title: "Medalla conseguida",
+            text: `Has vencido a ${info.trainer.name} y tu equipo se ha curado en el Centro Pokémon. ${formatBadgesLeft(GYM_COUNT - adventure.stage)}`,
+            buttonText: "Elegir recompensa",
+            progress: { plan: adventure.plan, stage: adventure.stage },
+            onContinue: showAdventureReward
+        });
+        return;
+    }
+    if (info.kind === "elite") {
+        adventure.stage++;
+        saveCurrentAdventure();
+        const isLastMember = adventure.stage === GYM_COUNT + ELITE_FOUR_COUNT;
+        showAdventureMessage({
+            title: "Combate ganado",
+            text: `Has vencido a ${info.trainer.name}. ${isLastMember ? "Solo queda el combate por el campeonato." : "Te espera el siguiente miembro del Alto Mando."} En la Liga tu equipo no se cura entre combates.`,
+            buttonText: isLastMember ? "Retar al campeonato" : "Siguiente combate",
+            progress: { plan: adventure.plan, stage: adventure.stage },
+            onContinue: startAdventureStage
+        });
+        return;
+    }
+    healTeam(selectedPokemon);
+    const completedPlan = adventure.plan;
+    if (isLastRegion(regionIndex)) {
+        clearAdventure();
+        showAdventureMessage({
+            title: `Liga de ${region} superada`,
+            text: `Has vencido a ${info.trainer.name} y has completado todas las regiones. ¡Enhorabuena!`,
+            buttonText: "Volver al inicio",
+            progress: { plan: completedPlan, stage: STAGES_PER_REGION },
+            onContinue: startNewRun
+        });
+        return;
+    }
+    const nextRegion = getRegion(regionIndex + 1).region;
+    adventure.plan = createRegionPlan(regionIndex + 1, typeIndex);
+    adventure.stage = 0;
+    saveCurrentAdventure();
+    showAdventureMessage({
+        title: `Liga de ${region} superada`,
+        text: `Has vencido a ${info.trainer.name}. Tu equipo se ha curado y tu viaje continúa en ${nextRegion}.`,
+        buttonText: `Viajar a ${nextRegion}`,
+        progress: { plan: completedPlan, stage: STAGES_PER_REGION },
+        onContinue: showAdventureReward
+    });
+}
+
+function handleAdventureTeamDefeated() {
+    const info = getStageInfo(adventure.plan, adventure.stage);
+    const inLeague = info.kind !== "gym";
+    healTeam(selectedPokemon);
+    if (inLeague) {
+        adventure.stage = GYM_COUNT;
+    }
+    saveCurrentAdventure();
+    showAdventureMessage({
+        title: "Tu equipo se ha debilitado",
+        text: inLeague
+            ? `${info.trainer.name} te ha vencido. Tu equipo se ha curado, pero tendrás que empezar de nuevo por el Alto Mando.`
+            : `${info.trainer.name} te ha vencido. Tu equipo se ha curado en el Centro Pokémon y puedes volver a intentarlo.`,
+        buttonText: inLeague ? "Volver a la Liga" : "Reintentar",
+        progress: { plan: adventure.plan, stage: adventure.stage },
+        onContinue: startAdventureStage
+    });
+}
+
+async function showAdventureReward() {
+    const region = getRegion(adventure.plan.regionIndex).region;
+    const pool = getRewardPool(adventure.plan.regionIndex, typeIndex, selectedPokemon);
+    rewardOffer = await withLoading("Buscando Pokémon...", () => getPokemonFromPools(3, [pool]));
+    selectedRewardId = null;
+    replacedPokemonId = null;
+    document.querySelector("#rewardMessage").textContent = selectedPokemon.length < MAX_TEAM_SIZE
+        ? `Elige un Pokémon de ${region} para unirlo a tu equipo (${selectedPokemon.length} de ${MAX_TEAM_SIZE}).`
+        : `Elige un Pokémon de ${region} si quieres cambiarlo por uno de tu equipo.`;
+    renderAdventureReward();
+    showScreen("#adventureRewardScreen");
+}
+
+function renderAdventureReward() {
+    const teamIsFull = selectedPokemon.length >= MAX_TEAM_SIZE;
+    const selectedReward = rewardOffer.find(pokemon => pokemon.id === selectedRewardId);
+    renderPokemonCards(rewardOffer, selectedReward ? [selectedReward] : [], pokemon => {
+        selectedRewardId = pokemon.id;
+        renderAdventureReward();
+    }, "#rewardGrid");
+    document.querySelector("#rewardReplaceSection").classList.toggle("hidden", !teamIsFull);
+    if (teamIsFull) {
+        const replaced = selectedPokemon.find(pokemon => pokemon.id === replacedPokemonId);
+        renderPokemonCards(selectedPokemon, replaced ? [replaced] : [], pokemon => {
+            replacedPokemonId = pokemon.id;
+            renderAdventureReward();
+        }, "#rewardTeamGrid");
+    }
+    const acceptRewardBtn = document.querySelector("#acceptRewardBtn");
+    acceptRewardBtn.textContent = teamIsFull ? "Sustituir" : "Añadir al equipo";
+    acceptRewardBtn.disabled = !selectedReward || (teamIsFull && !replacedPokemonId);
+}
+
+async function acceptAdventureReward() {
+    const reward = rewardOffer.find(pokemon => pokemon.id === selectedRewardId);
+    if (!reward) {
+        return;
+    }
+    if (selectedPokemon.length >= MAX_TEAM_SIZE) {
+        if (!replacedPokemonId) {
+            return;
+        }
+        selectedPokemon = selectedPokemon.map(pokemon => pokemon.id === replacedPokemonId ? reward : pokemon);
+    } else {
+        selectedPokemon = [...selectedPokemon, reward];
+    }
+    saveCurrentAdventure();
+    await showAdventureItems();
+}
+
+async function handleItemScreenContinue() {
+    if (gameMode === "adventure") {
+        saveCurrentAdventure();
+        await startAdventureStage();
+        return;
+    }
+    await startRun();
 }
 
 init();
