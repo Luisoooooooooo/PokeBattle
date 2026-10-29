@@ -841,6 +841,26 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--type-color);
+}
+
+.type-badge img {
+  width: 15px;
+  height: 15px;
+  filter: brightness(0) invert(1);
+}
+
+.battle-pokemon-types {
+  gap: 8px;
+}
+
 .battle-vs {
   padding: 0 16px;
   color: var(--text-3);
@@ -2617,36 +2637,67 @@ button,
   }
 
   .battle-main {
-    display: block;
+    display: grid;
+    gap: 10px;
+    order: 1;
+  }
+
+  .log-panel {
+    order: 2;
+  }
+
+  .battle-team {
+    order: 3;
   }
 
   .battle-field {
-    padding: 18px 10px 20px;
+    min-height: 0;
+    padding: 12px 8px 14px;
     border-radius: var(--radius-card);
   }
 
   .battle-pokemon > p:first-child {
     margin-bottom: 0;
+    font-size: 0.75rem;
   }
 
   .battle-pokemon > img {
-    height: 124px;
-    margin-bottom: 4px;
+    height: 96px;
+    margin-bottom: 2px;
+  }
+
+  .battle-pokemon h2 {
+    margin-bottom: 6px;
+    font-size: var(--fs-body);
+  }
+
+  .type-badge {
+    width: 26px;
+    height: 26px;
+  }
+
+  .type-badge img {
+    width: 13px;
+    height: 13px;
+  }
+
+  .battle-pokemon-types {
+    min-height: 26px;
+    gap: 6px;
   }
 
   .hp-bar {
-    margin: 12px auto 6px;
+    height: 6px;
+    margin: 10px auto 4px;
   }
 
-  /* El botón de combate queda siempre a mano, encima de la barra del sistema */
+  .battle-vs {
+    font-size: 0.75rem;
+  }
+
+  /* El botón va justo debajo del versus, sin perder de vista a los Pokémon */
   .primary-action {
-    position: fixed;
-    right: 16px;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    left: 16px;
-    z-index: 20;
-    width: auto;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    min-height: 48px;
   }
 
   .primary-action:disabled {
@@ -2712,16 +2763,11 @@ button,
     display: none;
   }
 
-  /* Registro siempre visible bajo el equipo */
+  /* El registro ocupa el hueco que queda en pantalla, sin bajar de 150px */
   .log-panel {
-    height: 280px;
-    padding: 14px;
+    height: clamp(150px, calc(100svh - 600px), 320px);
+    padding: 12px 14px;
     border-radius: var(--radius-card);
-  }
-
-  /* Lo último del registro no queda debajo del botón fijo */
-  .battle-log {
-    padding-bottom: 72px;
   }
 
   /* --- Objetos y mochila --- */

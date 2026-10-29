@@ -316,9 +316,8 @@ function updateBattlePokemonUI(pokemon, side, currentHp = pokemon.currentHp) {
     sprite.alt = formatPokemonName(pokemon.name);
     name.textContent = formatPokemonName(pokemon.name);
     types.innerHTML = pokemon.types.map(type => `
-        <span class="type" style="--type-color: var(--type-${type})">
-            <img class="type-icon" src="https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/${type}.svg" alt="">
-            ${formatTypeName(type)}
+        <span class="type-badge" style="--type-color: var(--type-${type})" title="${formatTypeName(type)}" role="img" aria-label="Tipo ${formatTypeName(type)}">
+            <img src="https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/${type}.svg" alt="">
         </span>
     `).join("");
     hpText.textContent = `${currentHp} / ${pokemon.maxHp} PS`;
@@ -464,7 +463,16 @@ function updateResolveButton() {
     } else {
         resolveMatchupBtn.textContent = "Resolver enfrentamiento";
     }
-    document.querySelector(".battle-team").classList.toggle("needs-choice", needsChoice);
+    const battleTeam = document.querySelector(".battle-team");
+    const hadToChoose = battleTeam.classList.contains("needs-choice");
+    battleTeam.classList.toggle("needs-choice", needsChoice);
+    if (needsChoice && !hadToChoose && isMobileLayout()) {
+        battleTeam.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+}
+
+function isMobileLayout() {
+    return window.matchMedia("(max-width: 700px)").matches;
 }
 
 async function handleResolveMatchup() {
@@ -647,6 +655,9 @@ function selectBattlePokemon(pokemon) {
     updateBattlePokemonUI(activePokemon, "player");
     renderBattleTeam();
     document.querySelector("#resolveMatchupBtn").disabled = false;
+    if (isMobileLayout()) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
 }
 
 function updateBattleTeamPokemonHp(pokemon, currentHp) {
