@@ -12,7 +12,43 @@
     </head>
     <body>
         <main>
-            <section class="selection">
+            <section id="modeScreen" class="mode-screen">
+                <div class="selection-header mode-header">
+                    <h1>PokéBattle</h1>
+                    <p>Forma un equipo, equípalo con objetos y deja que los combates se resuelvan turno a turno.</p>
+                </div>
+                <div class="mode-grid">
+                    <button id="classicModeBtn" class="mode-card" type="button">
+                        <h2>Clásico</h2>
+                        <p>Elige 6 de 12 Pokémon y vence a 5 entrenadores seguidos. Los PS no se recuperan entre combates.</p>
+                        <span class="mode-card-action">Jugar</span>
+                    </button>
+                    <button id="adventureModeBtn" class="mode-card" type="button" disabled>
+                        <h2>Aventura</h2>
+                        <p>Empieza en Kanto, vence a los 8 líderes y al Alto Mando, y viaja a la siguiente región.</p>
+                        <span class="mode-card-action">Próximamente</span>
+                    </button>
+                </div>
+            </section>
+            <section id="classicSetupScreen" class="classic-setup hidden">
+                <button id="backToModesBtn" class="back-button" type="button">Modos de juego</button>
+                <div class="screen-header">
+                    <div class="selection-header">
+                        <h1>Modo clásico</h1>
+                        <p>Elige las generaciones de las que salen tus Pokémon y los de los rivales.</p>
+                    </div>
+                    <div class="selection-toolbar">
+                        <span id="generationCount">9 de 9 generaciones</span>
+                        <button id="startClassicBtn">Continuar</button>
+                    </div>
+                </div>
+                <div class="generation-actions">
+                    <button id="selectAllGenerationsBtn" class="secondary-button" type="button">Todas</button>
+                    <button id="clearGenerationsBtn" class="secondary-button" type="button">Ninguna</button>
+                </div>
+                <div id="generationGrid" class="generation-grid"></div>
+            </section>
+            <section class="selection hidden">
                 <div class="screen-header">
                     <div class="selection-header">
                         <h1>Elige tus Pokémon</h1>

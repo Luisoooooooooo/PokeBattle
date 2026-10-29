@@ -5,9 +5,12 @@ import { resolveMatchup } from "./game/battle.js";
 import { getRandomTrainers } from "./data/trainers.js";
 import { formatPokemonName, formatTypeName } from "./utils/formatters.js";
 import { FINAL_EVOLUTION_IDS } from "./data/final-evolutions.js";
+import { ALL_GENERATION_IDS, getIdsInGenerations } from "./data/generations.js";
+import { renderGenerationFilter } from "./ui/generation-filter.js";
 
 const TEAM_SIZE = 6;
 const TOTAL_TRAINERS = 5;
+const CLASSIC_GENERATIONS_KEY = "pokebattle.classicGenerations";
 let pokemonOffer = [];
 let selectedPokemon = [];
 let itemOffer = [];
@@ -19,6 +22,77 @@ let playerPokemonNeedsEntry = true;
 let currentTrainer = 1;
 let runTrainers = [];
 let lastRunResult = null;
+let classicGenerationIds = loadClassicGenerations();
+let playerPokemonPool = FINAL_EVOLUTION_IDS;
+let enemyPokemonPool = null;
+
+function loadClassicGenerations() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CLASSIC_GENERATIONS_KEY));
+        if (Array.isArray(saved) && saved.length > 0 && saved.every(id => ALL_GENERATION_IDS.includes(id))) {
+            return saved;
+        }
+    } catch (error) {
+        console.warn(error);
+    }
+    return [...ALL_GENERATION_IDS];
+}
+
+function saveClassicGenerations() {
+    try {
+        localStorage.setItem(CLASSIC_GENERATIONS_KEY, JSON.stringify(classicGenerationIds));
+    } catch (error) {
+        console.warn(error);
+    }
+}
+
+function showScreen(selector) {
+    document.querySelectorAll("main > section").forEach(section => {
+        section.classList.toggle("hidden", !section.matches(selector));
+    });
+    window.scrollTo(0, 0);
+}
+
+function showClassicSetup() {
+    renderClassicSetup();
+    showScreen("#classicSetupScreen");
+}
+
+function renderClassicSetup() {
+    renderGenerationFilter(classicGenerationIds, toggleClassicGeneration);
+    const count = classicGenerationIds.length;
+    document.querySelector("#generationCount").textContent = `${count} de ${ALL_GENERATION_IDS.length} generaciones`;
+    document.querySelector("#startClassicBtn").disabled = count === 0;
+}
+
+function toggleClassicGeneration(generationId) {
+    if (classicGenerationIds.includes(generationId)) {
+        classicGenerationIds = classicGenerationIds.filter(id => id !== generationId);
+    } else {
+        classicGenerationIds = [...classicGenerationIds, generationId].sort((a, b) => a - b);
+    }
+    saveClassicGenerations();
+    renderClassicSetup();
+}
+
+function setAllClassicGenerations(selectAll) {
+    classicGenerationIds = selectAll ? [...ALL_GENERATION_IDS] : [];
+    saveClassicGenerations();
+    renderClassicSetup();
+}
+
+async function startClassicSelection() {
+    if (classicGenerationIds.length === 0) {
+        return;
+    }
+    playerPokemonPool = getIdsInGenerations(classicGenerationIds, FINAL_EVOLUTION_IDS);
+    enemyPokemonPool = getIdsInGenerations(classicGenerationIds);
+    selectedPokemon = [];
+    pokemonOffer = await withLoading("Buscando Pokémon salvajes...", () => getUniqueRandomPokemon(12, 2, playerPokemonPool));
+    renderPokemonCards(pokemonOffer, selectedPokemon, togglePokemonSelection);
+    updateSelectionUI();
+    showScreen(".selection");
+}
 
 function updateSelectionUI() {
     const selectionCount = document.querySelector("#selectionCount");
@@ -71,10 +145,12 @@ function equipItem(item) {
     renderItemSelection();
 }
 
-async function init() {
-    pokemonOffer = await withLoading("Buscando Pokémon salvajes...", () => getUniqueRandomPokemon(12, 2, FINAL_EVOLUTION_IDS));
-    renderPokemonCards(pokemonOffer, selectedPokemon, togglePokemonSelection);
-    updateSelectionUI();
+function init() {
+    document.querySelector("#classicModeBtn").addEventListener("click", showClassicSetup);
+    document.querySelector("#backToModesBtn").addEventListener("click", () => showScreen("#modeScreen"));
+    document.querySelector("#startClassicBtn").addEventListener("click", startClassicSelection);
+    document.querySelector("#selectAllGenerationsBtn").addEventListener("click", () => setAllClassicGenerations(true));
+    document.querySelector("#clearGenerationsBtn").addEventListener("click", () => setAllClassicGenerations(false));
     const continueBtn = document.querySelector("#continueBtn");
     continueBtn.addEventListener("click", confirmTeam);
     const startRunBtn = document.querySelector("#startRunBtn");
@@ -134,7 +210,7 @@ async function withLoading(message, task) {
 }
 
 async function loadEnemyTeam() {
-    enemyTeam = await withLoading("Buscando al siguiente rival...", () => getUniqueRandomPokemon(6, 2));
+    enemyTeam = await withLoading("Buscando al siguiente rival...", () => getUniqueRandomPokemon(6, 2, enemyPokemonPool));
     activeEnemyPokemon = enemyTeam[0];
     const enemyPokeballs = document.querySelector("#enemyPokeballs");
     enemyPokeballs.innerHTML = "";
