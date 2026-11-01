@@ -34,13 +34,13 @@ export const MEDICINES = [
         id: "super-potion",
         name: "Superpoción",
         price: 400,
-        description: "Todo tu equipo recupera la mitad de sus PS máximos."
+        description: "Un Pokémon recupera la mitad de sus PS máximos."
     },
     {
         id: "revive",
         name: "Revivir",
         price: 700,
-        description: "Tus Pokémon debilitados vuelven con la mitad de sus PS."
+        description: "Un Pokémon debilitado vuelve con la mitad de sus PS."
     }
 ];
 
@@ -88,24 +88,26 @@ export function createBagItem(item) {
     return { ...item, uid: `${item.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}` };
 }
 
-export function canUseMedicine(medicineId, team) {
-    if (medicineId === "revive") {
-        return team.some(pokemon => pokemon.fainted);
+// Cada medicina se usa en un solo Pokémon
+export function canUseMedicine(medicineId, pokemon) {
+    if (!pokemon) {
+        return false;
     }
-    return team.some(pokemon => !pokemon.fainted && pokemon.currentHp < pokemon.maxHp);
+    if (medicineId === "revive") {
+        return pokemon.fainted;
+    }
+    return !pokemon.fainted && pokemon.currentHp < pokemon.maxHp;
 }
 
-export function applyMedicine(medicineId, team) {
-    team.forEach(pokemon => {
-        const halfHp = Math.ceil(pokemon.maxHp / 2);
-        if (medicineId === "super-potion" && !pokemon.fainted) {
-            pokemon.currentHp = Math.min(pokemon.maxHp, pokemon.currentHp + halfHp);
-        }
-        if (medicineId === "revive" && pokemon.fainted) {
-            pokemon.currentHp = halfHp;
-            pokemon.fainted = false;
-        }
-    });
+export function applyMedicine(medicineId, pokemon) {
+    const halfHp = Math.ceil(pokemon.maxHp / 2);
+    if (medicineId === "super-potion" && !pokemon.fainted) {
+        pokemon.currentHp = Math.min(pokemon.maxHp, pokemon.currentHp + halfHp);
+    }
+    if (medicineId === "revive" && pokemon.fainted) {
+        pokemon.currentHp = halfHp;
+        pokemon.fainted = false;
+    }
 }
 
 // Los PS del legendario se multiplican para que uno solo plante cara a un equipo de seis

@@ -87,8 +87,16 @@ export function renderItemOffer(items, pokemonTeam, onItemSelect, emptyMessage =
     });
 }
 
-// Medicinas de la mochila agrupadas por tipo, con cuántas quedan y si ahora tienen efecto
-export function renderMedicines(selector, medicines, onUse) {
+function getMedicineButtonText(medicine, target) {
+    if (!target) {
+        return "Elige un Pokémon";
+    }
+    const name = formatPokemonName(target.name);
+    return medicine.usable ? `Usar en ${name}` : `Sin efecto en ${name}`;
+}
+
+// Medicinas de la mochila agrupadas por tipo, con cuántas quedan y si tienen efecto en el Pokémon elegido
+export function renderMedicines(selector, medicines, onUse, target) {
     const container = document.querySelector(selector);
     container.innerHTML = "";
     if (medicines.length === 0) {
@@ -102,7 +110,7 @@ export function renderMedicines(selector, medicines, onUse) {
             <img src="${medicine.sprite}" alt="">
             <h3>${medicine.name} <span class="medicine-count">× ${medicine.count}</span></h3>
             <p>${medicine.description}</p>
-            <button type="button" ${medicine.usable ? "" : "disabled"}>${medicine.usable ? "Usar" : "Sin efecto ahora"}</button>
+            <button type="button" ${medicine.usable ? "" : "disabled"}>${getMedicineButtonText(medicine, target)}</button>
         `;
         card.querySelector("button").addEventListener("click", () => onUse(medicine));
         container.appendChild(card);

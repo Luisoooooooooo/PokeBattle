@@ -171,17 +171,24 @@ function renderItemSelection() {
     if (isAdventure) {
         renderItemTeam(selectedPokemon, selectedItemPokemonId, selectItemPokemon, unequipToBag, true);
         renderItemOffer(getAdventureItems(), selectedPokemon, equipItem, "No tienes objetos para equipar. Consigue más en las tiendas y eventos de las rutas.");
-        renderMedicines("#medicineGrid", getBagMedicines(), useMedicine);
+        renderMedicines("#medicineGrid", getBagMedicines(), useMedicine, getItemTargetPokemon());
         return;
     }
     renderItemTeam(selectedPokemon, selectedItemPokemonId, selectItemPokemon);
     renderItemOffer(itemOffer, selectedPokemon, equipItem);
 }
 
+function getItemTargetPokemon() {
+    return selectedPokemon.find(pokemon => pokemon.id === selectedItemPokemonId);
+}
+
+// La descripción sale de MEDICINES para que las compradas antes del cambio digan lo mismo
 function getBagMedicines() {
+    const target = getItemTargetPokemon();
     const groups = new Map();
     adventure.bag.filter(item => item.medicine).forEach(item => {
-        const group = groups.get(item.id) ?? { ...item, count: 0, usable: canUseMedicine(item.id, selectedPokemon) };
+        const description = MEDICINES.find(medicine => medicine.id === item.id)?.description ?? item.description;
+        const group = groups.get(item.id) ?? { ...item, description, count: 0, usable: canUseMedicine(item.id, target) };
         group.count++;
         groups.set(item.id, group);
     });
@@ -189,11 +196,12 @@ function getBagMedicines() {
 }
 
 function useMedicine(medicine) {
+    const target = getItemTargetPokemon();
     const bagItem = adventure.bag.find(item => item.medicine && item.id === medicine.id);
-    if (!bagItem || !canUseMedicine(medicine.id, selectedPokemon)) {
+    if (!bagItem || !canUseMedicine(medicine.id, target)) {
         return;
     }
-    applyMedicine(medicine.id, selectedPokemon);
+    applyMedicine(medicine.id, target);
     adventure.bag = adventure.bag.filter(item => item !== bagItem);
     saveCurrentAdventure();
     renderItemSelection();

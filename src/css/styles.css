@@ -2319,6 +2319,13 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.item-section-hint {
+  margin: -6px 4px 14px;
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+  line-height: 1.45;
+}
+
 .medicine-card {
   display: flex;
   flex-direction: column;
