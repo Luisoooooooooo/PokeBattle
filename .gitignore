@@ -1,0 +1,10 @@
+# Herramientas y material de consulta, no forman parte de la app
+/.claude/
+/.playwright/
+/.playwright-cli/
+/.taste-skill/
+/awesome-design-md/
+
+# Sistema
+Thumbs.db
+.DS_Store
