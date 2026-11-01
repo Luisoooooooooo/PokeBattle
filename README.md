@@ -35,9 +35,11 @@ Build your team, equip your Pokémon and battle your way through a run of five t
 - Your team is healed after every Gym; in the League it is not healed between battles, but you can open your bag to use medicines and change items.
 - Lose against a Gym Leader and you can recruit a new Pokémon before trying again.
 - After each Gym, pick a new Pokémon from the region (up to 6).
+- Stronger Pokémon unlock as you earn badges: from the 3rd badge, strong ones like Gyarados or Snorlax; from the 6th, pseudo-legendaries like Dragonite. Legendary and Mythical Pokémon never appear in normal offers.
 - Before every Gym (and Victory Road before the League) walk a route of 3 stops, choosing each time between a route Trainer, an Event, a Shop or a Pokémon Center. Your HP carries over along the route.
 - Earn money only by battling trainers, and spend it in shops on held items and medicines. Everything you buy goes to your bag, and medicines are used from there.
 - Random events: a wild Pokémon that wants to join, an item found on the route, or a trainer who challenges you.
+- From the 6th badge (and on Victory Road), an event can be a legendary encounter: a Legendary or Mythical Pokémon with triple HP. Beat it and it joins your team; lose and it flees.
 - Beat the Champion to travel to the next region with your team, all the way to Paldea.
 - Progress is saved in the browser so you can continue later.
 

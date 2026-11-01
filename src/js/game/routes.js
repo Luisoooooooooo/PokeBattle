@@ -108,9 +108,17 @@ export function applyMedicine(medicineId, team) {
     });
 }
 
-// El dinero solo se gana combatiendo: los eventos traen un Pokémon, un objeto o un combate
-export function pickEvent() {
-    return pickWeighted({ wild: 40, trainer: 30, item: 30 });
+// Los PS del legendario se multiplican para que uno solo plante cara a un equipo de seis
+export const LEGENDARY_HP_MULTIPLIER = 3;
+
+// El dinero solo se gana combatiendo: los eventos traen un Pokémon, un objeto o un combate.
+// Desde la 6.ª medalla, un evento puede ser un encuentro legendario (15 de 115, un 13 %)
+export function pickEvent(allowLegendary = false) {
+    const weights = { wild: 40, trainer: 30, item: 30 };
+    if (allowLegendary) {
+        weights.legendary = 15;
+    }
+    return pickWeighted(weights);
 }
 
 // Dinero según lo avanzada que esté la región (stage = índice del próximo combate)

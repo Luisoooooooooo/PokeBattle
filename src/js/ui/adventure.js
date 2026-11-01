@@ -28,11 +28,13 @@ function renderMarker(marker) {
 export function renderAdventureProgress(selector, markers, labels) {
     const container = document.querySelector(selector);
     const groups = ["gym", "elite", "champion"].map(kind => {
-        const items = markers.filter(marker => marker.kind === kind).map(renderMarker).join("");
+        const group = markers.filter(marker => marker.kind === kind);
+        const done = group.filter(marker => marker.done).length;
+        const count = group.length > 1 ? ` <small>${done}/${group.length}</small>` : "";
         return `
-            <div class="stage-group">
-                <ol>${items}</ol>
-                <span>${labels[kind]}</span>
+            <div class="stage-group stage-group-${kind}">
+                <ol>${group.map(renderMarker).join("")}</ol>
+                <span>${labels[kind]}${count}</span>
             </div>
         `;
     });

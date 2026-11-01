@@ -4,6 +4,7 @@ import { renderItemTeam, renderItemOffer, renderMedicines } from "./ui/item-sele
 import { resolveMatchup } from "./game/battle.js";
 import { getRandomTrainers } from "./data/trainers.js";
 import { formatPokemonName, formatTypeName } from "./utils/formatters.js";
+import { TYPE_ICON_BASE } from "./data/types.js";
 import { FINAL_EVOLUTION_IDS } from "./data/final-evolutions.js";
 import { ALL_GENERATION_IDS, getIdsInGenerations } from "./data/generations.js";
 import { renderGenerationChips } from "./ui/generation-filter.js";
@@ -23,6 +24,7 @@ import {
     getRouteTrainerReward,
     getBattleReward,
     getRouteTrainerTeamSize,
+    LEGENDARY_HP_MULTIPLIER,
     formatMoney
 } from "./game/routes.js";
 import {
@@ -37,6 +39,9 @@ import {
     getStageInfo,
     getStageLabels,
     getRewardPool,
+    getLegendaryPool,
+    getRouteTrainerPool,
+    canMeetLegendary,
     healTeam,
     getStageMarkers,
     saveAdventure,
@@ -323,7 +328,7 @@ function updateBattlePokemonUI(pokemon, side, currentHp = pokemon.currentHp) {
     name.textContent = formatPokemonName(pokemon.name);
     types.innerHTML = pokemon.types.map(type => `
         <span class="type-badge" style="--type-color: var(--type-${type})" title="${formatTypeName(type)}" role="img" aria-label="Tipo ${formatTypeName(type)}">
-            <img src="https://raw.githubusercontent.com/duiker101/pokemon-type-svg-icons/master/icons/${type}.svg" alt="">
+            <img src="${TYPE_ICON_BASE}/${type}.svg" alt="">
         </span>
     `).join("");
     hpText.textContent = `${currentHp} / ${pokemon.maxHp} PS`;
@@ -333,49 +338,75 @@ function updateBattlePokemonUI(pokemon, side, currentHp = pokemon.currentHp) {
     hpBar.classList.toggle("critical", hpPercentage <= 25);
 }
 
-function scrollBattleLog() {
+// Solo baja hasta el final si ya estabas abajo: así no te arranca de lo que estés leyendo
+function appendToBattleLog(entry) {
     const battleLog = document.querySelector("#battleLog");
-    battleLog.scrollTop = battleLog.scrollHeight;
+    const isAtBottom = battleLog.scrollHeight - battleLog.scrollTop - battleLog.clientHeight < 48;
+    battleLog.appendChild(entry);
+    if (isAtBottom) {
+        battleLog.scrollTop = battleLog.scrollHeight;
+    }
 }
 
 function addBattleLogMessage(message, type = "system") {
-    const battleLog = document.querySelector("#battleLog");
     const logMessage = document.createElement("p");
     logMessage.classList.add("log-message", `log-${type}`);
     logMessage.textContent = message;
-    battleLog.appendChild(logMessage);
-    scrollBattleLog();
+    appendToBattleLog(logMessage);
 }
 
 function addBattleLogTurn(turnNumber) {
-    const battleLog = document.querySelector("#battleLog");
     const turn = document.createElement("div");
     turn.classList.add("log-turn");
     turn.textContent = `Turno ${turnNumber}`;
-    battleLog.appendChild(turn);
-    scrollBattleLog();
+    appendToBattleLog(turn);
 }
 
-function addBattleLogAttack(attack, effects = []) {
-    const battleLog = document.querySelector("#battleLog");
+function getEffectivenessTag(multiplier) {
+    if (multiplier === 0) {
+        return { kind: "none", text: "No afecta" };
+    }
+    if (multiplier > 1) {
+        return { kind: "super", text: "Supereficaz" };
+    }
+    if (multiplier < 1) {
+        return { kind: "weak", text: "Poco eficaz" };
+    }
+    return null;
+}
+
+// Una fila por ataque: icono del tipo, quién ataca, eficacia y daño; los objetos van debajo
+function addBattleLogAttack(attack, notes = []) {
     const isPlayer = attack.attacker === activePokemon;
-    const attackName = attack.type === "struggle" ? "Forcejeo" : `tipo ${formatTypeName(attack.type)}`;
+    const isStruggle = attack.type === "struggle";
+    const attackerName = formatPokemonName(attack.attacker.name);
+    const defenderName = formatPokemonName(attack.defender.name);
+    const moveName = isStruggle ? "Forcejeo" : `Ataque ${formatTypeName(attack.type)}`;
+    const tag = isStruggle ? null : getEffectivenessTag(attack.multiplier);
+    const damageText = attack.damageDealt > 0 ? `−${attack.damageDealt}` : "0";
+    const icon = isStruggle
+        ? `<span class="log-attack-icon" aria-hidden="true">✊</span>`
+        : `<span class="log-attack-icon" style="--type-color: var(--type-${attack.type})" aria-hidden="true"><img src="${TYPE_ICON_BASE}/${attack.type}.svg" alt=""></span>`;
     const attackBlock = document.createElement("div");
     attackBlock.classList.add("log-attack", isPlayer ? "log-attack-player" : "log-attack-enemy");
-    const attackTitle = document.createElement("strong");
-    attackTitle.textContent = `${formatPokemonName(attack.attacker.name)} ataca con ${attackName}.`;
-    attackBlock.appendChild(attackTitle);
-    effects.forEach(effect => {
-        const effectLine = document.createElement("span");
-        effectLine.textContent = effect;
-        attackBlock.appendChild(effectLine);
+    attackBlock.innerHTML = `
+        ${icon}
+        <div class="log-attack-body">
+            <strong>${attackerName}</strong>
+            <span class="log-attack-move">${moveName}${tag ? ` <em class="log-tag log-tag-${tag.kind}">${tag.text}</em>` : ""}</span>
+        </div>
+        <span class="log-attack-damage" aria-label="${defenderName} pierde ${attack.damageDealt} PS">${damageText}<small>PS</small></span>
+    `;
+    notes.forEach(note => {
+        const noteLine = document.createElement("p");
+        noteLine.classList.add("log-attack-note");
+        noteLine.textContent = note;
+        attackBlock.appendChild(noteLine);
     });
-    battleLog.appendChild(attackBlock);
-    scrollBattleLog();
+    appendToBattleLog(attackBlock);
 }
 
 function addBattleLogResult(winner, loser) {
-    const battleLog = document.querySelector("#battleLog");
     const resultBlock = document.createElement("div");
     const playerWon = winner === activePokemon;
     resultBlock.classList.add("log-result", playerWon ? "log-result-player-win" : "log-result-player-loss");
@@ -384,12 +415,10 @@ function addBattleLogResult(winner, loser) {
         <strong class="log-result-name">${formatPokemonName(loser.name)}</strong>
         <span class="log-result-detail">${formatPokemonName(winner.name)} gana el enfrentamiento</span>
     `;
-    battleLog.appendChild(resultBlock);
-    scrollBattleLog();
+    appendToBattleLog(resultBlock);
 }
 
 function addBattleLogDoubleFaint(playerPokemon, enemyPokemon) {
-    const battleLog = document.querySelector("#battleLog");
     const resultBlock = document.createElement("div");
     resultBlock.classList.add("log-result", "log-result-double");
     resultBlock.innerHTML = `
@@ -397,21 +426,7 @@ function addBattleLogDoubleFaint(playerPokemon, enemyPokemon) {
         <strong class="log-result-name">${formatPokemonName(playerPokemon.name)} y ${formatPokemonName(enemyPokemon.name)}</strong>
         <span class="log-result-detail">Ambos Pokémon se han debilitado</span>
     `;
-    battleLog.appendChild(resultBlock);
-    scrollBattleLog();
-}
-
-function getEffectivenessMessage(multiplier) {
-    if (multiplier === 0) {
-        return "No afecta al rival.";
-    }
-    if (multiplier > 1) {
-        return "¡Es supereficaz!";
-    }
-    if (multiplier < 1) {
-        return "No es muy eficaz...";
-    }
-    return null;
+    appendToBattleLog(resultBlock);
 }
 
 function updateEnemyPokeballs() {
@@ -513,7 +528,7 @@ async function resolveMatchupFlow() {
     }
     updateBattlePokemonUI(activePokemon, "player", playerInitialHp);
     updateBattlePokemonUI(activeEnemyPokemon, "enemy", enemyInitialHp);
-    addBattleLogMessage(`${formatPokemonName(activePokemon.name)} se enfrenta a ${formatPokemonName(activeEnemyPokemon.name)}.`, "matchup");
+    addBattleLogMessage(`${formatPokemonName(activePokemon.name)} contra ${formatPokemonName(activeEnemyPokemon.name)}`, "matchup");
     await wait(700);
     for (let turnIndex = 0; turnIndex < result.turns.length; turnIndex++) {
         const turn = result.turns[turnIndex];
@@ -523,18 +538,9 @@ async function resolveMatchupFlow() {
             const attackerSide = attack.attacker === activePokemon ? "player" : "enemy";
             const defenderSide = attack.defender === activePokemon ? "player" : "enemy";
             const effects = [];
-            const effectivenessMessage = getEffectivenessMessage(attack.multiplier);
             updateBattlePokemonUI(attack.defender, defenderSide, attack.defenderCurrentHp);
             if (attack.defender === activePokemon) {
                 updateBattleTeamPokemonHp(activePokemon, attack.defenderCurrentHp);
-            }
-            if (attack.damageDealt > 0) {
-                effects.push(`${formatPokemonName(attack.defender.name)} pierde ${attack.damageDealt} PS.`);
-            } else {
-                effects.push(`${formatPokemonName(attack.defender.name)} no recibe daño.`);
-            }
-            if (effectivenessMessage && attack.type !== "struggle") {
-                effects.push(effectivenessMessage);
             }
             if (attack.focusBandActivated) {
                 effects.push(`¡La Banda Focus permite a ${formatPokemonName(attack.defender.name)} resistir con 1 PS!`);
@@ -644,7 +650,6 @@ async function resolveMatchupFlow() {
     }
     if (playerFainted) {
         activePokemon = null;
-        addBattleLogMessage("Elige otro Pokémon de tu equipo para continuar.", "important");
         renderBattleTeam();
         resolveMatchupBtn.disabled = true;
         return;
@@ -747,7 +752,8 @@ function getTrainerProgressText() {
     if (gameMode === "adventure") {
         const region = getRegion(adventure.plan.regionIndex).region;
         if (routeBattle) {
-            return `${region} · ${adventure.route.name} · Entrenador de la ruta`;
+            const kind = routeBattle.legendary ? "Encuentro legendario" : "Entrenador de la ruta";
+            return `${region} · ${adventure.route.name} · ${kind}`;
         }
         return `${region} · ${getCurrentStageInfo().progressText}`;
     }
@@ -778,6 +784,9 @@ function showTrainerIntro() {
     document.querySelector("#trainerIntroSprite").src = trainer.sprite;
     document.querySelector("#trainerIntroSprite").alt = trainer.name;
     document.querySelector("#trainerIntroName").textContent = trainer.name;
+    document.querySelector("#trainerIntroLead").textContent = routeBattle?.legendary
+        ? "Una presencia poderosa te corta el paso."
+        : "Te reta a un combate.";
     document.querySelector("#trainerIntroProgress").textContent = `${getTrainerProgressText()}.`;
     showScreen("#trainerIntroScreen");
 }
@@ -1276,10 +1285,11 @@ function handleAdventureTeamDefeated() {
     });
 }
 
-async function showAdventureReward({ count = 3, message = null, onDone }) {
+// offer permite ofrecer Pokémon ya cargados, como el legendario recién vencido
+async function showAdventureReward({ count = 3, message = null, offer = null, onDone }) {
     const region = getRegion(adventure.plan.regionIndex).region;
-    const pool = getRewardPool(adventure.plan.regionIndex, selectedPokemon);
-    rewardOffer = await withLoading("Buscando Pokémon...", () => getPokemonFromPools(count, [pool]));
+    const pool = getRewardPool(adventure.plan.regionIndex, selectedPokemon, adventure.stage);
+    rewardOffer = offer ?? await withLoading("Buscando Pokémon...", () => getPokemonFromPools(count, [pool]));
     rewardContinuation = onDone;
     selectedRewardId = null;
     replacedPokemonId = null;
@@ -1396,12 +1406,54 @@ async function chooseRouteNode(type) {
 
 async function startRouteTrainerBattle() {
     const [trainer] = getRandomTrainers(1);
-    const pool = getIdsInGenerations([getRegion(adventure.plan.regionIndex).id]);
+    const pool = getRouteTrainerPool(adventure.plan.regionIndex);
     routeBattle = { trainer: { name: trainer.name, sprite: trainer.sprite }, reward: getRouteTrainerReward(adventure.stage) };
     await startAdventureBattle(() => getPokemonFromPools(getRouteTrainerTeamSize(adventure.stage), [pool]));
 }
 
+// El legendario combate solo, con los PS multiplicados; si cae, se une al equipo con sus PS normales
+async function startLegendaryBattle() {
+    const pool = getLegendaryPool(adventure.plan.regionIndex, selectedPokemon);
+    const id = pool[Math.floor(Math.random() * pool.length)];
+    routeBattle = { legendary: id, trainer: null, reward: 0 };
+    await startAdventureBattle(async () => {
+        const legendary = await getPokemon(id);
+        routeBattle.trainer = { name: formatPokemonName(legendary.name), sprite: legendary.sprite };
+        legendary.maxHp *= LEGENDARY_HP_MULTIPLIER;
+        legendary.currentHp = legendary.maxHp;
+        return [legendary];
+    });
+}
+
+async function handleLegendaryBattleWon() {
+    const { legendary, trainer } = routeBattle;
+    routeBattle = null;
+    advanceRoute();
+    await wait(1000);
+    const pokemon = await withLoading("El Pokémon se acerca...", () => getPokemon(legendary));
+    const teamIsFull = selectedPokemon.length >= MAX_TEAM_SIZE;
+    await showAdventureReward({
+        offer: [pokemon],
+        message: teamIsFull
+            ? `Has vencido a ${trainer.name} y quiere unirse a tu equipo. Elige a quién sustituye o sigue sin cambios.`
+            : `Has vencido a ${trainer.name} y quiere unirse a tu equipo.`,
+        onDone: showRoute
+    });
+}
+
+function handleLegendaryBattleLost() {
+    const { trainer } = routeBattle;
+    routeBattle = null;
+    healTeam(selectedPokemon);
+    advanceRoute();
+    showRouteMessage(`${trainer.name} ha huido`, `Tu equipo no ha podido con ${trainer.name}, que desaparece sin dejar rastro. Te llevan al Centro Pokémon, donde tu equipo se recupera.`);
+}
+
 async function handleRouteBattleWon() {
+    if (routeBattle.legendary) {
+        await handleLegendaryBattleWon();
+        return;
+    }
     const { trainer, reward } = routeBattle;
     routeBattle = null;
     adventure.money += reward;
@@ -1411,6 +1463,10 @@ async function handleRouteBattleWon() {
 }
 
 function handleRouteBattleLost() {
+    if (routeBattle.legendary) {
+        handleLegendaryBattleLost();
+        return;
+    }
     const { trainer } = routeBattle;
     routeBattle = null;
     const lostMoney = Math.floor(adventure.money / 2);
@@ -1421,11 +1477,17 @@ function handleRouteBattleLost() {
 }
 
 async function runRouteEvent() {
-    const event = pickEvent();
-    const region = getRegion(adventure.plan.regionIndex).region;
-    // El combate avanza la ruta al terminar, como una parada de entrenador
+    const { regionIndex } = adventure.plan;
+    const legendaryAvailable = canMeetLegendary(regionIndex, adventure.stage) && getLegendaryPool(regionIndex, selectedPokemon).length > 0;
+    const event = pickEvent(legendaryAvailable);
+    const region = getRegion(regionIndex).region;
+    // Los combates avanzan la ruta al terminar, como una parada de entrenador
     if (event === "trainer") {
         await startRouteTrainerBattle();
+        return;
+    }
+    if (event === "legendary") {
+        await startLegendaryBattle();
         return;
     }
     advanceRoute();

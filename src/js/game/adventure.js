@@ -1,6 +1,7 @@
 import { GENERATIONS, getIdsInGenerations } from "../data/generations.js";
 import { FINAL_EVOLUTION_IDS } from "../data/final-evolutions.js";
 import { LEAGUES } from "../data/leagues.js";
+import { LEGENDARY_IDS, ELITE_IDS, STRONG_IDS } from "../data/pokemon-tiers.js";
 import { formatTypeName } from "../utils/formatters.js";
 
 export const MAX_TEAM_SIZE = 6;
@@ -83,9 +84,40 @@ export function getStageLabels(regionIndex) {
     return { gym: league.gymLabel, elite: league.leagueLabel, champion: "Campeonato" };
 }
 
-export function getRewardPool(regionIndex, team) {
+// Medallas contadas sobre 8, para que Alola (4 grandes pruebas) siga el mismo ritmo
+export function getMedalCount(regionIndex, stage) {
+    const gyms = getLeagueStart(regionIndex);
+    return Math.floor(Math.min(stage, gyms) * 8 / gyms);
+}
+
+// Los Pokémon fuertes llegan con la 3.ª medalla y los pseudolegendarios con la 6.ª;
+// los legendarios nunca salen aquí, solo en los encuentros legendarios
+export function getRewardPool(regionIndex, team, stage) {
+    const medals = getMedalCount(regionIndex, stage);
     const teamIds = new Set(team.map(pokemon => pokemon.id));
-    return getIdsInGenerations([GENERATIONS[regionIndex].id], FINAL_EVOLUTION_IDS).filter(id => !teamIds.has(id));
+    const blocked = new Set(LEGENDARY_IDS);
+    if (medals < 3) {
+        STRONG_IDS.forEach(id => blocked.add(id));
+    }
+    if (medals < 6) {
+        ELITE_IDS.forEach(id => blocked.add(id));
+    }
+    return getIdsInGenerations([GENERATIONS[regionIndex].id], FINAL_EVOLUTION_IDS).filter(id => !blocked.has(id) && !teamIds.has(id));
+}
+
+export function canMeetLegendary(regionIndex, stage) {
+    return getMedalCount(regionIndex, stage) >= 6;
+}
+
+export function getLegendaryPool(regionIndex, team) {
+    const teamIds = new Set(team.map(pokemon => pokemon.id));
+    return getIdsInGenerations([GENERATIONS[regionIndex].id], LEGENDARY_IDS).filter(id => !teamIds.has(id));
+}
+
+// Los entrenadores de ruta tampoco llevan legendarios
+export function getRouteTrainerPool(regionIndex) {
+    const legendary = new Set(LEGENDARY_IDS);
+    return getIdsInGenerations([GENERATIONS[regionIndex].id]).filter(id => !legendary.has(id));
 }
 
 export function healTeam(team) {
