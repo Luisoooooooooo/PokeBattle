@@ -12,3 +12,6 @@
 
 # Los módulos de JavaScript deben servirse como JavaScript
 AddType text/javascript .js
+
+# El manifiesto de la web (icono y nombre al instalarla)
+AddType application/manifest+json .webmanifest
