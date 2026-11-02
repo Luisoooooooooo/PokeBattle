@@ -109,6 +109,13 @@ export function canMeetLegendary(regionIndex, stage) {
     return getMedalCount(regionIndex, stage) >= 6;
 }
 
+// Pokémon que siguen al pasar de región; los legendarios se quedan en la suya
+export const TRAVEL_TEAM_SIZE = 2;
+
+export function isLegendary(pokemon) {
+    return LEGENDARY_IDS.includes(pokemon.id);
+}
+
 export function getLegendaryPool(regionIndex, team) {
     const teamIds = new Set(team.map(pokemon => pokemon.id));
     return getIdsInGenerations([GENERATIONS[regionIndex].id], LEGENDARY_IDS).filter(id => !teamIds.has(id));

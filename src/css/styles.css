@@ -282,6 +282,30 @@ button:disabled {
   box-shadow: inset 0 0 0 2px var(--accent-text);
 }
 
+.pokemon-card.locked {
+  cursor: not-allowed;
+}
+
+.pokemon-card.locked > img,
+.pokemon-card.locked > h2,
+.pokemon-card.locked > .pokemon-types,
+.pokemon-card.locked > .pokemon-stats {
+  opacity: 0.4;
+}
+
+.pokemon-card.locked:hover {
+  background: var(--surface);
+  transform: none;
+}
+
+.pokemon-card-lock {
+  margin: 14px 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  text-align: center;
+}
+
 .pokemon-card.fainted {
   opacity: 0.35;
   cursor: not-allowed;

@@ -40,7 +40,7 @@ Build your team, equip your Pokémon and battle your way through a run of five t
 - Earn money only by battling trainers, and spend it in shops on held items and medicines. Everything you buy goes to your bag, and medicines are used from there on one Pokémon at a time.
 - Random events: a wild Pokémon that wants to join, an item found on the route, or a trainer who challenges you.
 - From the 6th badge (and on Victory Road), an event can be a legendary encounter: a Legendary or Mythical Pokémon with triple HP. Beat it and it joins your team; lose and it flees.
-- Beat the Champion to travel to the next region with your team, all the way to Paldea.
+- Beat the Champion to travel to the next region, all the way to Paldea. Only 2 Pokémon of your choice travel with you (Legendaries stay in their region), and your money resets to ₽1000.
 - Progress is saved in the browser so you can continue later.
 
 ## Scoring

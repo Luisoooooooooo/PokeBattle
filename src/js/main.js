@@ -44,6 +44,8 @@ import {
     canMeetLegendary,
     healTeam,
     getStageMarkers,
+    TRAVEL_TEAM_SIZE,
+    isLegendary,
     saveAdventure,
     loadAdventure,
     clearAdventure
@@ -79,6 +81,7 @@ let adventureMessageBagAction = null;
 let rewardContinuation = null;
 let itemsContinuation = null;
 let routeBattle = null;
+let travelSelection = [];
 let shopProducts = [];
 let isBattleBusy = false;
 
@@ -242,6 +245,7 @@ function init() {
     document.querySelector("#confirmStarterBtn").addEventListener("click", confirmStarter);
     document.querySelector("#acceptRewardBtn").addEventListener("click", acceptAdventureReward);
     document.querySelector("#skipRewardBtn").addEventListener("click", () => rewardContinuation?.());
+    document.querySelector("#confirmTravelBtn").addEventListener("click", confirmTravel);
     document.querySelector("#routeBagBtn").addEventListener("click", () => showAdventureItems(showRoute));
     document.querySelector("#leaveShopBtn").addEventListener("click", leaveShop);
     document.querySelector("#adventureMessageBtn").addEventListener("click", () => adventureMessageAction?.());
@@ -1087,6 +1091,7 @@ function saveCurrentAdventure() {
         money: adventure.money,
         bag: adventure.bag,
         route: adventure.route,
+        travel: adventure.travel,
         team: selectedPokemon
     });
 }
@@ -1157,9 +1162,14 @@ async function continueAdventure() {
         starterSlot: saved.starterSlot ?? 0,
         money: saved.money ?? START_MONEY,
         bag: saved.bag ?? [],
-        route: saved.route ?? null
+        route: saved.route ?? null,
+        travel: saved.travel ?? false
     };
     selectedPokemon = saved.team;
+    if (adventure.travel) {
+        showTravelScreen();
+        return;
+    }
     if (adventure.route) {
         showRoute();
         return;
@@ -1213,8 +1223,12 @@ function formatBadgesLeft(badgesLeft, league) {
 async function handleAdventureTrainerDefeated() {
     const info = getCurrentStageInfo();
     const regionIndex = adventure.plan.regionIndex;
-    const region = getRegion(regionIndex).region;
     const league = getLeague(regionIndex);
+    if (info.kind === "champion") {
+        await wait(1000);
+        finishRegion(info);
+        return;
+    }
     const reward = getBattleReward(info.kind, adventure.stage);
     adventure.money += reward;
     await wait(1000);
@@ -1245,8 +1259,13 @@ async function handleAdventureTrainerDefeated() {
             onContinue: startAdventureStage,
             onBag: () => showAdventureItems(startAdventureStage, nextBattleText)
         });
-        return;
     }
+}
+
+// El dinero no viaja: en la región nueva se empieza con START_MONEY
+function finishRegion(info) {
+    const regionIndex = adventure.plan.regionIndex;
+    const region = getRegion(regionIndex).region;
     healTeam(selectedPokemon);
     const completedPlan = adventure.plan;
     if (isLastRegion(regionIndex)) {
@@ -1263,14 +1282,72 @@ async function handleAdventureTrainerDefeated() {
     const nextRegion = getRegion(regionIndex + 1).region;
     adventure.plan = createRegionPlan(regionIndex + 1);
     adventure.stage = 0;
+    adventure.travel = true;
     saveCurrentAdventure();
     showAdventureMessage({
         title: `Liga de ${region} superada`,
-        text: `Has vencido a ${info.trainer.name} y ganas ${formatMoney(reward)}. Tu equipo se ha curado y tu viaje continúa en ${nextRegion}.`,
-        buttonText: `Viajar a ${nextRegion}`,
+        text: `Has vencido a ${info.trainer.name}. Tu viaje continúa en ${nextRegion}, pero solo ${TRAVEL_TEAM_SIZE} Pokémon pueden acompañarte.`,
+        buttonText: "Elegir compañeros",
         progress: { plan: completedPlan, stage: getStageCount(regionIndex) },
-        onContinue: () => showAdventureReward({ onDone: () => showAdventureItems(enterRoute) })
+        onContinue: showTravelScreen
     });
+}
+
+function getTravelCandidates() {
+    return selectedPokemon.filter(pokemon => !isLegendary(pokemon));
+}
+
+// Si no hay más candidatos que plazas, van todos sin tener que elegir
+function showTravelScreen() {
+    const candidates = getTravelCandidates();
+    travelSelection = candidates.length <= TRAVEL_TEAM_SIZE ? [...candidates] : [];
+    const previousRegion = getRegion(adventure.plan.regionIndex - 1).region;
+    const nextRegion = getRegion(adventure.plan.regionIndex).region;
+    const legendaryText = candidates.length < selectedPokemon.length ? " Los legendarios no pueden salir de su región." : "";
+    document.querySelector("#travelMessage").textContent = `Elige ${TRAVEL_TEAM_SIZE} Pokémon para viajar contigo a ${nextRegion}. Los demás se quedan en ${previousRegion}.${legendaryText} Empezarás con ${formatMoney(START_MONEY)}.`;
+    document.querySelector("#confirmTravelBtn").textContent = `Viajar a ${nextRegion}`;
+    renderTravelScreen();
+    showScreen("#travelScreen");
+}
+
+function renderTravelScreen() {
+    const region = getRegion(adventure.plan.regionIndex - 1).region;
+    const required = Math.min(TRAVEL_TEAM_SIZE, getTravelCandidates().length);
+    renderPokemonCards(selectedPokemon, travelSelection, toggleTravelPokemon, "#travelGrid", pokemon => {
+        return isLegendary(pokemon) ? `Se queda en ${region}` : null;
+    });
+    document.querySelector("#confirmTravelBtn").disabled = travelSelection.length !== required;
+}
+
+function toggleTravelPokemon(pokemon) {
+    if (travelSelection.includes(pokemon)) {
+        travelSelection = travelSelection.filter(selected => selected !== pokemon);
+    } else if (travelSelection.length < TRAVEL_TEAM_SIZE) {
+        travelSelection = [...travelSelection, pokemon];
+    }
+    renderTravelScreen();
+    if (travelSelection.length === TRAVEL_TEAM_SIZE && isMobileLayout()) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+}
+
+// Los objetos de los que se quedan vuelven a la mochila
+function confirmTravel() {
+    selectedPokemon.filter(pokemon => !travelSelection.includes(pokemon) && pokemon.item).forEach(pokemon => {
+        adventure.bag.push(pokemon.item);
+        pokemon.item = null;
+    });
+    selectedPokemon = [...travelSelection];
+    healTeam(selectedPokemon);
+    adventure.money = START_MONEY;
+    adventure.travel = false;
+    saveCurrentAdventure();
+    offerTravelReward();
+}
+
+// Con el equipo vacío (solo tenías legendarios) se repite la oferta hasta tener alguien
+function offerTravelReward() {
+    showAdventureReward({ onDone: () => (selectedPokemon.length === 0 ? offerTravelReward() : showAdventureItems(enterRoute)) });
 }
 
 function handleAdventureTeamDefeated() {
