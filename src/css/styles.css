@@ -897,6 +897,27 @@ button:disabled {
   gap: 8px;
 }
 
+/* Objeto equipado, junto a «Tu Pokémon» / «Rival» */
+.battle-held-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  color: var(--item);
+  vertical-align: middle;
+}
+
+.battle-held-item:empty {
+  display: none;
+}
+
+.battle-held-item img {
+  width: 18px;
+  height: 18px;
+  margin: -4px 0;
+  image-rendering: pixelated;
+}
+
 .battle-vs {
   padding: 0 16px;
   color: var(--text-3);

@@ -2,13 +2,16 @@ import { GENERATIONS, getIdsInGenerations } from "../data/generations.js";
 import { FINAL_EVOLUTION_IDS } from "../data/final-evolutions.js";
 import { LEAGUES } from "../data/leagues.js";
 import { LEGENDARY_IDS, ELITE_IDS, STRONG_IDS } from "../data/pokemon-tiers.js";
+import { supportedItems } from "../data/items.js";
+import { HP_BONUS } from "./pokemon.js";
 import { formatTypeName } from "../utils/formatters.js";
 
 export const MAX_TEAM_SIZE = 6;
 
 const SAVE_KEY = "pokebattle.adventure";
-// La versión 1 usaba líderes aleatorios; esas partidas ya no se pueden continuar
-const SAVE_VERSION = 2;
+// La versión 1 usaba líderes aleatorios; esas partidas ya no se pueden continuar.
+// La 2 guardaba los PS sin HP_BONUS: se convierten al cargar
+const SAVE_VERSION = 3;
 
 export function getRegion(regionIndex) {
     return GENERATIONS[regionIndex];
@@ -77,6 +80,47 @@ export function getStageInfo(plan, stage, starterSlot) {
         team: getTrainerTeam(league.champion, starterSlot),
         progressText: "Campeonato"
     };
+}
+
+const ITEM_SPRITE_BASE = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items";
+const LEADER_ITEM_IDS = ["sitrus-berry", "leftovers", "rocky-helmet", "assault-vest", "focus-band", "quick-claw", "life-orb", "choice-band", "choice-scarf"];
+
+function createLeaderItem(id) {
+    const item = supportedItems.find(candidate => candidate.id === id);
+    return { ...item, sprite: `${ITEM_SPRITE_BASE}/${id}.png` };
+}
+
+// Siempre el mismo reparto para el mismo entrenador, para que reintentar sea justo
+function hashText(text) {
+    return [...text].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) >>> 0, 7);
+}
+
+// Cuántos Pokémon del rival llevan objeto: más cuanto más avanzado está el combate
+function getLeaderItemCount(info, medals) {
+    if (info.kind === "champion") {
+        return 4;
+    }
+    if (info.kind === "elite") {
+        return 3;
+    }
+    return 1 + Math.floor(medals / 3);
+}
+
+// Devuelve un objeto (o null) por cada Pokémon del equipo; el as, que va el último, lleva el
+// potenciador de su tipo si el entrenador tiene uno
+export function getTrainerItems(plan, stage, team) {
+    const info = getStageInfo(plan, stage, 0);
+    const count = Math.min(team.length, getLeaderItemCount(info, getMedalCount(plan.regionIndex, stage)));
+    const typeBoost = info.type ? supportedItems.find(item => item.effect === "type-boost" && item.boostType === info.type) : null;
+    const seed = hashText(info.trainer.name);
+    const items = team.map(() => null);
+    for (let offset = 0; offset < count; offset++) {
+        const index = team.length - 1 - offset;
+        items[index] = offset === 0 && typeBoost
+            ? createLeaderItem(typeBoost.id)
+            : createLeaderItem(LEADER_ITEM_IDS[(seed + offset * 5) % LEADER_ITEM_IDS.length]);
+    }
+    return items;
 }
 
 export function getStageLabels(regionIndex) {
@@ -157,9 +201,22 @@ export function saveAdventure(adventure) {
     }
 }
 
+function migrateSave(saved) {
+    if (saved?.version === 2 && Array.isArray(saved.team)) {
+        saved.team.forEach(pokemon => {
+            pokemon.maxHp += HP_BONUS;
+            if (!pokemon.fainted) {
+                pokemon.currentHp += HP_BONUS;
+            }
+        });
+        saved.version = SAVE_VERSION;
+    }
+    return saved;
+}
+
 export function loadAdventure() {
     try {
-        const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+        const saved = migrateSave(JSON.parse(localStorage.getItem(SAVE_KEY)));
         const isValid = saved
             && saved.version === SAVE_VERSION
             && saved.plan

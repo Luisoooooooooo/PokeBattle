@@ -1,7 +1,7 @@
 import { getPokemon, getItem, getUniqueRandomPokemon, getRandomItemOffer, getPokemonFromPools } from "./api/pokeapi.js";
 import { renderPokemonCards } from "./ui/pokemon-cards.js";
 import { renderItemTeam, renderItemOffer, renderMedicines } from "./ui/item-selection.js";
-import { resolveMatchup } from "./game/battle.js";
+import { resolveMatchup, chooseBestCounter } from "./game/battle.js";
 import { getRandomTrainers } from "./data/trainers.js";
 import { formatPokemonName, formatTypeName } from "./utils/formatters.js";
 import { TYPE_ICON_BASE } from "./data/types.js";
@@ -44,6 +44,7 @@ import {
     canMeetLegendary,
     healTeam,
     getStageMarkers,
+    getTrainerItems,
     TRAVEL_TEAM_SIZE,
     isLegendary,
     saveAdventure,
@@ -344,6 +345,8 @@ function updateBattlePokemonUI(pokemon, side, currentHp = pokemon.currentHp) {
         </span>
     `).join("");
     hpText.textContent = `${currentHp} / ${pokemon.maxHp} PS`;
+    const heldItem = document.querySelector(`#${side}BattleItem`);
+    heldItem.innerHTML = pokemon.item ? `<img src="${pokemon.item.sprite}" alt="">${pokemon.item.name}` : "";
     const hpPercentage = (currentHp / pokemon.maxHp) * 100;
     hpBar.style.width = `${Math.max(0, hpPercentage)}%`;
     hpBar.classList.toggle("warning", hpPercentage > 25 && hpPercentage <= 50);
@@ -451,7 +454,19 @@ function updateEnemyPokeballs() {
     });
 }
 
+// Líderes, Alto Mando y campeones sacan el Pokémon que mejor encaja contra el tuyo
+function isSmartTrainer() {
+    return gameMode === "adventure" && !routeBattle;
+}
+
 function showNextEnemyPokemon() {
+    const livingEnemies = enemyTeam.filter(pokemon => !pokemon.fainted);
+    if (isSmartTrainer() && livingEnemies.length > 0 && activePokemon && !activePokemon.fainted) {
+        activeEnemyPokemon = chooseBestCounter(livingEnemies, activePokemon);
+        updateBattlePokemonUI(activeEnemyPokemon, "enemy");
+        updateEnemyPokeballs();
+        return true;
+    }
     const currentEnemyIndex = enemyTeam.indexOf(activeEnemyPokemon);
     for (let offset = 1; offset <= enemyTeam.length; offset++) {
         const nextIndex = (currentEnemyIndex + offset) % enemyTeam.length;
@@ -1194,7 +1209,14 @@ async function startAdventureBattle(fetchTeam) {
 async function startAdventureStage() {
     routeBattle = null;
     const { team } = getCurrentStageInfo();
-    await startAdventureBattle(() => Promise.all(team.map(name => getPokemon(name))));
+    await startAdventureBattle(async () => {
+        const pokemon = await Promise.all(team.map(name => getPokemon(name)));
+        const items = getTrainerItems(adventure.plan, adventure.stage, pokemon);
+        pokemon.forEach((member, index) => {
+            member.item = items[index];
+        });
+        return pokemon;
+    });
 }
 
 // onBag añade el botón Mochila (se usa entre combates de la Liga)

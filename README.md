@@ -23,6 +23,7 @@ Build your team, equip your Pokémon and battle your way through a run of five t
 - Pokémon keep their remaining HP between battles.
 - Switch Pokémon between matchups.
 - Type effectiveness and different item effects affect each battle.
+- Every Pokémon gets +40 HP on top of its base HP, so a neutral hit takes 2 or 3 blows while super effective hits can still knock out in one.
 - Complete the run to receive a final score and rank.
 - Discover your MVP at the end of the run.
 - Download a result card with your final team and score.
@@ -32,6 +33,7 @@ Build your team, equip your Pokémon and battle your way through a run of five t
 - Start in Kanto by choosing one of the region starters in their final evolution (Venusaur, Charizard or Blastoise).
 - Face the real Gym Leaders, Elite Four and Champion of each region with their teams from the original games (Alola uses the kahunas; Galar uses the Champion Cup).
 - Some rivals and champions change their team depending on your starter, like in the games.
+- Gym Leaders, the Elite Four and Champions hold items (more in later battles) and, when one of their Pokémon faints, send out the one that best counters yours.
 - Your team is healed after every Gym; in the League it is not healed between battles, but you can open your bag to use medicines and change items.
 - Lose against a Gym Leader and you can recruit a new Pokémon before trying again.
 - After each Gym, pick a new Pokémon from the region (up to 6).

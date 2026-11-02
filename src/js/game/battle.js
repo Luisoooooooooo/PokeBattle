@@ -90,6 +90,37 @@ export function getDamageMultiplier(pokemon, attackType) {
     return multiplier;
 }
 
+// Daño esperado sin azar: lo usa el rival para decidir qué Pokémon sacar
+export function estimateDamage(attacker, defender) {
+    const category = getAttackCategory(attacker);
+    const baseDamage = getOffensiveStat(attacker) * ATTACK_MULTIPLIER - getDefensiveStat(defender, category) * DEFENSE_MULTIPLIER + BASE_DAMAGE;
+    const attackType = getBestAttackType(attacker, defender);
+    if (attackType.multiplier === 0) {
+        return 0;
+    }
+    return Math.max(5, baseDamage * attackType.multiplier * getDamageMultiplier(attacker, attackType.type));
+}
+
+function getHitsToFaint(attacker, defender) {
+    const damage = estimateDamage(attacker, defender);
+    return damage > 0 ? Math.ceil(defender.currentHp / damage) : 99;
+}
+
+// Elige al candidato que mejor aguanta y golpea al rival; en empate se respeta el orden del equipo
+export function chooseBestCounter(candidates, opponent) {
+    let best = candidates[0];
+    let bestScore = -Infinity;
+    candidates.forEach(candidate => {
+        const speedEdge = getEffectiveSpeed(candidate) > getEffectiveSpeed(opponent) ? 0.5 : 0;
+        const score = getHitsToFaint(opponent, candidate) - getHitsToFaint(candidate, opponent) + speedEdge;
+        if (score > bestScore) {
+            best = candidate;
+            bestScore = score;
+        }
+    });
+    return best;
+}
+
 export function calculateBaseDamage(attacker, defender) {
     const category = getAttackCategory(attacker);
     const offensiveStat = getOffensiveStat(attacker);
