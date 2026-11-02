@@ -1,9 +1,14 @@
 import { typeMeta, TYPE_ICON_BASE } from "../data/types.js";
 import { formatPokemonName, formatTypeName } from "../utils/formatters.js";
 
-function createPokemonCard(pokemon, selectedPokemon, onToggle) {
+// getLockLabel devuelve un texto si la tarjeta no se puede elegir (y por qué)
+function createPokemonCard(pokemon, selectedPokemon, onToggle, getLockLabel) {
+    const lockLabel = getLockLabel?.(pokemon) ?? null;
     const card = document.createElement("article");
     card.classList.add("pokemon-card");
+    if (lockLabel) {
+        card.classList.add("locked");
+    }
     if (selectedPokemon.some(selected => selected.id === pokemon.id)) {
         card.classList.add("selected");
     }
@@ -21,9 +26,12 @@ function createPokemonCard(pokemon, selectedPokemon, onToggle) {
             <span>DEFSp<strong>${pokemon.specialDefense}</strong></span>
             <span>VEL<strong>${pokemon.speed}</strong></span>
         </div>
+        ${lockLabel ? `<p class="pokemon-card-lock">${lockLabel}</p>` : ""}
     `;
     card.addEventListener("click", () => {
-        onToggle(pokemon);
+        if (!lockLabel) {
+            onToggle(pokemon);
+        }
     });
     return card;
 }
@@ -40,11 +48,11 @@ export function renderTypes(types) {
     }).join("");
 }
 
-export function renderPokemonCards(pokemonList, selectedPokemon, onToggle) {
-    const pokemonGrid = document.querySelector("#pokemonGrid");
+export function renderPokemonCards(pokemonList, selectedPokemon, onToggle, selector = "#pokemonGrid", getLockLabel = null) {
+    const pokemonGrid = document.querySelector(selector);
     pokemonGrid.innerHTML = "";
     pokemonList.forEach(pokemon => {
-        const card = createPokemonCard(pokemon, selectedPokemon, onToggle);
+        const card = createPokemonCard(pokemon, selectedPokemon, onToggle, getLockLabel);
         pokemonGrid.appendChild(card);
     });
 }
