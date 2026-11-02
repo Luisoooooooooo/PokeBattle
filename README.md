@@ -43,6 +43,7 @@ Build your team, equip your Pokémon and battle your way through a run of five t
 - Random events: a wild Pokémon that wants to join, an item found on the route, or a trainer who challenges you.
 - From the 6th badge (and on Victory Road), an event can be a legendary encounter: a Legendary or Mythical Pokémon with triple HP. Beat it and it joins your team; lose and it flees.
 - Beat the Champion to travel to the next region, all the way to Paldea. Only 2 Pokémon of your choice travel with you (Legendaries stay in their region), and your money resets to ₽1000.
+- Statistics for the current region and the whole adventure (battles, knockouts, damage, money, medicines, recruits and a ranking of your Pokémon with an MVP), available from the route and shown as a summary after each League.
 - Progress is saved in the browser so you can continue later.
 
 ## Scoring

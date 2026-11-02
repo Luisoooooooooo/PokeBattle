@@ -1526,6 +1526,153 @@ button:disabled {
 
 
 /* =========================================================
+   ESTADÍSTICAS DE LA AVENTURA
+   ========================================================= */
+
+.stats-scope {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+}
+
+.stats-scope-btn {
+  min-height: 40px;
+  padding: 8px 18px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 0.9375rem;
+}
+
+.stats-scope-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.stats-scope-btn[aria-pressed="true"],
+.stats-scope-btn[aria-pressed="true"]:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.stats-tiles {
+  margin-bottom: 36px;
+}
+
+.stats-heading {
+  margin: 0 4px 14px;
+  font-size: var(--fs-headline);
+  font-weight: 700;
+}
+
+.stats-pokemon {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats-pokemon-row {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 72px 72px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 10px 8px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.stats-pokemon-row img {
+  width: 56px;
+  height: 56px;
+  image-rendering: pixelated;
+}
+
+.stats-pokemon-row.gone img {
+  opacity: 0.45;
+}
+
+.stats-pokemon-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stats-pokemon-name strong {
+  overflow: hidden;
+  font-size: var(--fs-body);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-pokemon-name small,
+.stats-pokemon-figure small {
+  color: var(--text-3);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.stats-mvp {
+  margin-left: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--warning) 18%, transparent);
+  color: var(--warning);
+  font-size: 0.75rem;
+  font-weight: 800;
+  vertical-align: 2px;
+}
+
+.stats-pokemon-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.stats-pokemon-figure strong {
+  font-size: var(--fs-body);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-empty {
+  padding: 16px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  color: var(--text-2);
+}
+
+@media (max-width: 700px) {
+  .stats-scope {
+    display: flex;
+  }
+
+  .stats-scope-btn {
+    flex: 1 1 0;
+    padding: 8px 10px;
+  }
+
+  .stats-pokemon-row {
+    grid-template-columns: 44px minmax(0, 1fr) 52px 60px;
+    gap: 8px;
+    padding: 8px 12px 8px 4px;
+  }
+
+  .stats-pokemon-row img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .stats-pokemon-name strong {
+    font-size: 0.9375rem;
+  }
+}
+
+
+/* =========================================================
    EQUIPO FINAL
    ========================================================= */
 

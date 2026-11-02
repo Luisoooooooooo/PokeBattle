@@ -77,6 +77,24 @@
                 </div>
                 <div id="travelGrid" class="pokemon-grid starter-grid"></div>
             </section>
+            <section id="statsScreen" class="adventure-screen hidden">
+                <div class="screen-header">
+                    <div class="selection-header">
+                        <h1 id="statsTitle">Estadísticas</h1>
+                        <p id="statsMessage"></p>
+                    </div>
+                    <div class="selection-toolbar">
+                        <button id="statsContinueBtn">Volver a la ruta</button>
+                    </div>
+                </div>
+                <div class="stats-scope" role="group" aria-label="Periodo">
+                    <button class="stats-scope-btn" type="button" data-scope="region" aria-pressed="true">Esta región</button>
+                    <button class="stats-scope-btn" type="button" data-scope="run" aria-pressed="false">Toda la aventura</button>
+                </div>
+                <div id="statsTiles" class="end-stats stats-tiles"></div>
+                <h2 class="stats-heading">Tus Pokémon</h2>
+                <ol id="statsPokemon" class="stats-pokemon"></ol>
+            </section>
             <section id="routeScreen" class="adventure-screen hidden">
                 <div class="screen-header">
                     <div class="selection-header">
@@ -88,6 +106,7 @@
                             <span>Dinero</span>
                             <strong id="routeMoney">₽0</strong>
                         </div>
+                        <button id="routeStatsBtn" class="secondary-button" type="button">Estadísticas</button>
                         <button id="routeBagBtn" class="secondary-button" type="button">Mochila</button>
                     </div>
                 </div>

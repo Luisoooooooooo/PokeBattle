@@ -9,6 +9,8 @@ import { FINAL_EVOLUTION_IDS } from "./data/final-evolutions.js";
 import { ALL_GENERATION_IDS, getIdsInGenerations } from "./data/generations.js";
 import { renderGenerationChips } from "./ui/generation-filter.js";
 import { renderAdventureProgress } from "./ui/adventure.js";
+import { renderStats } from "./ui/stats.js";
+import { createStats, normalizeStats, startRegionStats, addStat, addPokemonStat } from "./game/stats.js";
 import { renderRouteOptions, renderRouteTeam, renderShop } from "./ui/route.js";
 import {
     START_MONEY,
@@ -83,6 +85,8 @@ let rewardContinuation = null;
 let itemsContinuation = null;
 let routeBattle = null;
 let travelSelection = [];
+let statsScope = "region";
+let statsContinuation = null;
 let shopProducts = [];
 let isBattleBusy = false;
 
@@ -206,6 +210,7 @@ function useMedicine(medicine) {
         return;
     }
     applyMedicine(medicine.id, target);
+    addStat(adventure.stats, "medicinesUsed");
     adventure.bag = adventure.bag.filter(item => item !== bagItem);
     saveCurrentAdventure();
     renderItemSelection();
@@ -248,6 +253,14 @@ function init() {
     document.querySelector("#skipRewardBtn").addEventListener("click", () => rewardContinuation?.());
     document.querySelector("#confirmTravelBtn").addEventListener("click", confirmTravel);
     document.querySelector("#routeBagBtn").addEventListener("click", () => showAdventureItems(showRoute));
+    document.querySelector("#routeStatsBtn").addEventListener("click", showRouteStats);
+    document.querySelector("#statsContinueBtn").addEventListener("click", () => statsContinuation?.());
+    document.querySelectorAll(".stats-scope-btn").forEach(button => {
+        button.addEventListener("click", () => {
+            statsScope = button.dataset.scope;
+            renderStatsScreen();
+        });
+    });
     document.querySelector("#leaveShopBtn").addEventListener("click", leaveShop);
     document.querySelector("#adventureMessageBtn").addEventListener("click", () => adventureMessageAction?.());
     document.querySelector("#adventureMessageBagBtn").addEventListener("click", () => adventureMessageBagAction?.());
@@ -594,6 +607,10 @@ async function resolveMatchupFlow() {
                 effects.push(`${formatPokemonName(attack.attacker.name)} pierde ${attack.lifeOrbRecoil} PS por la Vidasfera.`);
             }
             addBattleLogAttack(attack, effects);
+            if (gameMode === "adventure" && attack.attacker === activePokemon) {
+                addPokemonStat(adventure.stats, activePokemon, "damageDealt", attack.damageDealt);
+                addStat(adventure.stats, "damageDealt", attack.damageDealt);
+            }
             await wait(900);
         }
         if (turn.leftovers.pokemonA > 0) {
@@ -607,6 +624,11 @@ async function resolveMatchupFlow() {
             addBattleLogMessage(`${formatPokemonName(activeEnemyPokemon.name)} recupera ${turn.leftovers.pokemonB} PS con Restos.`, "item");
             await wait(500);
         }
+    }
+    // Sin ganador es un doble debilitamiento: el rival también cuenta como debilitado
+    if (gameMode === "adventure" && (result.winner === activePokemon || !result.winner)) {
+        addPokemonStat(adventure.stats, activePokemon, "knockouts");
+        addStat(adventure.stats, "knockouts");
     }
     if (result.winner) {
         addBattleLogResult(result.winner, result.loser);
@@ -1107,6 +1129,7 @@ function saveCurrentAdventure() {
         bag: adventure.bag,
         route: adventure.route,
         travel: adventure.travel,
+        stats: adventure.stats,
         team: selectedPokemon
     });
 }
@@ -1116,7 +1139,7 @@ async function startNewAdventure() {
         return;
     }
     gameMode = "adventure";
-    adventure = { plan: createRegionPlan(0), stage: 0, badges: 0, starterSlot: 0, money: START_MONEY, bag: [], route: null };
+    adventure = { plan: createRegionPlan(0), stage: 0, badges: 0, starterSlot: 0, money: START_MONEY, bag: [], route: null, stats: createStats() };
     selectedPokemon = [];
     selectedStarter = null;
     const [starters, startingItems] = await withLoading("Buscando compañeros...", () => Promise.all([
@@ -1178,7 +1201,8 @@ async function continueAdventure() {
         money: saved.money ?? START_MONEY,
         bag: saved.bag ?? [],
         route: saved.route ?? null,
-        travel: saved.travel ?? false
+        travel: saved.travel ?? false,
+        stats: normalizeStats(saved.stats)
     };
     selectedPokemon = saved.team;
     if (adventure.travel) {
@@ -1247,12 +1271,15 @@ async function handleAdventureTrainerDefeated() {
     const regionIndex = adventure.plan.regionIndex;
     const league = getLeague(regionIndex);
     if (info.kind === "champion") {
+        addStat(adventure.stats, "battlesWon");
         await wait(1000);
         finishRegion(info);
         return;
     }
     const reward = getBattleReward(info.kind, adventure.stage);
     adventure.money += reward;
+    addStat(adventure.stats, "battlesWon");
+    addStat(adventure.stats, "moneyEarned", reward);
     await wait(1000);
     if (info.kind === "gym") {
         adventure.badges++;
@@ -1289,14 +1316,13 @@ function finishRegion(info) {
     const regionIndex = adventure.plan.regionIndex;
     const region = getRegion(regionIndex).region;
     healTeam(selectedPokemon);
-    const completedPlan = adventure.plan;
     if (isLastRegion(regionIndex)) {
         clearAdventure();
-        showAdventureMessage({
+        showStatsScreen({
             title: `Liga de ${region} superada`,
-            text: `Has vencido a ${info.trainer.name} y has completado todas las regiones. ¡Enhorabuena!`,
+            text: `Has vencido a ${info.trainer.name} y has completado todas las regiones. ¡Enhorabuena! Este es el resumen de tu aventura.`,
             buttonText: "Volver al inicio",
-            progress: { plan: completedPlan, stage: getStageCount(regionIndex) },
+            scope: "run",
             onContinue: startNewRun
         });
         return;
@@ -1306,12 +1332,45 @@ function finishRegion(info) {
     adventure.stage = 0;
     adventure.travel = true;
     saveCurrentAdventure();
-    showAdventureMessage({
+    showStatsScreen({
         title: `Liga de ${region} superada`,
-        text: `Has vencido a ${info.trainer.name}. Tu viaje continúa en ${nextRegion}, pero solo ${TRAVEL_TEAM_SIZE} Pokémon pueden acompañarte.`,
+        text: `Has vencido a ${info.trainer.name}. Este es el resumen de tu paso por ${region}. Tu viaje continúa en ${nextRegion}, pero solo ${TRAVEL_TEAM_SIZE} Pokémon pueden acompañarte.`,
         buttonText: "Elegir compañeros",
-        progress: { plan: completedPlan, stage: getStageCount(regionIndex) },
+        scope: "region",
         onContinue: showTravelScreen
+    });
+}
+
+// ---------- Estadísticas ----------
+
+function showStatsScreen({ title, text, buttonText, scope, onContinue }) {
+    document.querySelector("#statsTitle").textContent = title;
+    document.querySelector("#statsMessage").textContent = text;
+    document.querySelector("#statsContinueBtn").textContent = buttonText;
+    statsScope = scope;
+    statsContinuation = onContinue;
+    renderStatsScreen();
+    showScreen("#statsScreen");
+}
+
+function renderStatsScreen() {
+    const isRegion = statsScope === "region";
+    document.querySelectorAll(".stats-scope-btn").forEach(button => {
+        button.setAttribute("aria-pressed", String(button.dataset.scope === statsScope));
+    });
+    const stats = adventure.stats;
+    renderStats(isRegion ? stats.region : stats.run, isRegion ? stats.regionPokemon : stats.pokemon, selectedPokemon);
+}
+
+function showRouteStats() {
+    const region = getRegion(adventure.plan.regionIndex).region;
+    const medals = Math.min(adventure.stage, getLeagueStart(adventure.plan.regionIndex));
+    showStatsScreen({
+        title: "Estadísticas",
+        text: `Tu aventura en ${region}: ${medals} de ${getLeagueStart(adventure.plan.regionIndex)} medallas.`,
+        buttonText: "Volver a la ruta",
+        scope: statsScope,
+        onContinue: showRoute
     });
 }
 
@@ -1363,6 +1422,7 @@ function confirmTravel() {
     healTeam(selectedPokemon);
     adventure.money = START_MONEY;
     adventure.travel = false;
+    startRegionStats(adventure.stats);
     saveCurrentAdventure();
     offerTravelReward();
 }
@@ -1373,6 +1433,7 @@ function offerTravelReward() {
 }
 
 function handleAdventureTeamDefeated() {
+    addStat(adventure.stats, "battlesLost");
     const info = getCurrentStageInfo();
     const inLeague = info.kind !== "gym";
     healTeam(selectedPokemon);
@@ -1446,6 +1507,7 @@ function acceptAdventureReward() {
     } else {
         selectedPokemon = [...selectedPokemon, reward];
     }
+    addStat(adventure.stats, "pokemonJoined");
     saveCurrentAdventure();
     rewardContinuation();
 }
@@ -1557,6 +1619,7 @@ function handleLegendaryBattleLost() {
 }
 
 async function handleRouteBattleWon() {
+    addStat(adventure.stats, "battlesWon");
     if (routeBattle.legendary) {
         await handleLegendaryBattleWon();
         return;
@@ -1564,12 +1627,14 @@ async function handleRouteBattleWon() {
     const { trainer, reward } = routeBattle;
     routeBattle = null;
     adventure.money += reward;
+    addStat(adventure.stats, "moneyEarned", reward);
     advanceRoute();
     await wait(1000);
     showRouteMessage("Combate ganado", `Has vencido a ${trainer.name} y ganas ${formatMoney(reward)}. Tu equipo conserva los PS que le quedan.`);
 }
 
 function handleRouteBattleLost() {
+    addStat(adventure.stats, "battlesLost");
     if (routeBattle.legendary) {
         handleLegendaryBattleLost();
         return;
@@ -1638,6 +1703,7 @@ function buyProduct(product) {
         return;
     }
     adventure.money -= product.price;
+    addStat(adventure.stats, "moneySpent", product.price);
     if (product.kind === "item") {
         const { kind, price, sold, ...item } = product;
         adventure.bag.push(createBagItem(item));
