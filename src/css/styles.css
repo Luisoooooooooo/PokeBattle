@@ -827,6 +827,31 @@ button:disabled {
   min-width: 0;
 }
 
+/* Resolver ocupa el hueco y el ×2 queda al lado, a mano del pulgar */
+.battle-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.battle-actions .primary-action {
+  flex: 1 1 auto;
+  width: auto;
+}
+
+.battle-speed-btn {
+  flex: 0 0 auto;
+  min-width: 64px;
+  padding: 0 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.battle-speed-btn[aria-pressed="true"],
+.battle-speed-btn[aria-pressed="true"]:hover {
+  background: var(--accent-text);
+  color: #ffffff;
+}
+
 .battle-field {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -2385,6 +2410,22 @@ button:disabled {
 
 .shop-card button {
   width: 100%;
+}
+
+.shop-sell {
+  margin-top: 40px;
+}
+
+.shop-sell > h2 {
+  margin: 0 4px 6px;
+  font-size: var(--fs-headline);
+  font-weight: 700;
+}
+
+.shop-sell > p {
+  margin: 0 4px 16px;
+  color: var(--text-2);
+  font-size: var(--fs-caption);
 }
 
 .item-offer-empty {

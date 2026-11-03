@@ -3,6 +3,7 @@ import { FINAL_EVOLUTION_IDS } from "../data/final-evolutions.js";
 import { LEAGUES } from "../data/leagues.js";
 import { LEGENDARY_IDS, ELITE_IDS, STRONG_IDS } from "../data/pokemon-tiers.js";
 import { supportedItems } from "../data/items.js";
+import { UPGRADED_GYM_TEAMS } from "../data/gym-teams.js";
 import { HP_BONUS } from "./pokemon.js";
 import { formatTypeName } from "../utils/formatters.js";
 
@@ -48,6 +49,11 @@ function getTrainerTeam(trainer, starterSlot) {
     return trainer.teams ? trainer.teams[starterSlot] ?? trainer.teams[0] : trainer.team;
 }
 
+// Kanto usa los equipos originales; desde Johto los líderes vienen reforzados
+function getGymTeam(regionIndex, stage, trainer, starterSlot) {
+    return UPGRADED_GYM_TEAMS[regionIndex]?.[stage] ?? getTrainerTeam(trainer, starterSlot);
+}
+
 export function getStageInfo(plan, stage, starterSlot) {
     const league = LEAGUES[plan.regionIndex];
     const leagueStart = league.gyms.length;
@@ -57,7 +63,7 @@ export function getStageInfo(plan, stage, starterSlot) {
             kind: "gym",
             trainer,
             type: trainer.type,
-            team: getTrainerTeam(trainer, starterSlot),
+            team: getGymTeam(plan.regionIndex, stage, trainer, starterSlot),
             progressText: `${league.gymLabel} ${stage + 1} de ${leagueStart} · tipo ${formatTypeName(trainer.type)}`
         };
     }

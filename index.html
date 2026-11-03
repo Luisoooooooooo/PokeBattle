@@ -137,6 +137,11 @@
                     </div>
                 </div>
                 <div id="shopGrid" class="item-offer-grid shop-grid"></div>
+                <div class="shop-sell">
+                    <h2>Vender</h2>
+                    <p>Te pagan la mitad de lo que cuesta. Recuerda que el dinero no viaja a la siguiente región.</p>
+                    <div id="sellGrid" class="item-offer-grid shop-grid"></div>
+                </div>
             </section>
             <section id="adventureMessageScreen" class="trainer-defeated-screen adventure-message-screen hidden">
                 <div class="trainer-defeated">
@@ -240,7 +245,10 @@
                                 <p id="enemyHpText">0 / 0 PS</p>
                             </div>
                         </div>
-                        <button id="resolveMatchupBtn" class="primary-action">Resolver enfrentamiento</button>
+                        <div class="battle-actions">
+                            <button id="resolveMatchupBtn" class="primary-action">Resolver enfrentamiento</button>
+                            <button id="battleSpeedBtn" class="secondary-button battle-speed-btn" type="button" aria-pressed="false" aria-label="Velocidad doble">×2</button>
+                        </div>
                     </div>
                     <aside class="log-panel">
                         <h2>Registro de combate</h2>

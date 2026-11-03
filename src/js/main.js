@@ -11,7 +11,7 @@ import { renderGenerationChips } from "./ui/generation-filter.js";
 import { renderAdventureProgress } from "./ui/adventure.js";
 import { renderStats } from "./ui/stats.js";
 import { createStats, normalizeStats, startRegionStats, addStat, addPokemonStat } from "./game/stats.js";
-import { renderRouteOptions, renderRouteTeam, renderShop } from "./ui/route.js";
+import { renderRouteOptions, renderRouteTeam, renderShop, renderSellList } from "./ui/route.js";
 import {
     START_MONEY,
     ROUTE_LENGTH,
@@ -19,6 +19,7 @@ import {
     createRoute,
     getRouteName,
     getItemPrice,
+    getSellPrice,
     createBagItem,
     applyMedicine,
     canUseMedicine,
@@ -86,6 +87,8 @@ let itemsContinuation = null;
 let routeBattle = null;
 let travelSelection = [];
 let statsScope = "region";
+const SPEED_KEY = "pokebattle.speed";
+let battleSpeed = loadBattleSpeed();
 let statsContinuation = null;
 let shopProducts = [];
 let isBattleBusy = false;
@@ -252,6 +255,8 @@ function init() {
     document.querySelector("#acceptRewardBtn").addEventListener("click", acceptAdventureReward);
     document.querySelector("#skipRewardBtn").addEventListener("click", () => rewardContinuation?.());
     document.querySelector("#confirmTravelBtn").addEventListener("click", confirmTravel);
+    document.querySelector("#battleSpeedBtn").addEventListener("click", toggleBattleSpeed);
+    updateSpeedButton();
     document.querySelector("#routeBagBtn").addEventListener("click", () => showAdventureItems(showRoute));
     document.querySelector("#routeStatsBtn").addEventListener("click", showRouteStats);
     document.querySelector("#statsContinueBtn").addEventListener("click", () => statsContinuation?.());
@@ -339,8 +344,31 @@ async function loadEnemyTeam(fetchTeam = () => getUniqueRandomPokemon(6, 2, enem
 
 function wait(milliseconds) {
     return new Promise(resolve => {
-        setTimeout(resolve, milliseconds);
+        setTimeout(resolve, milliseconds / battleSpeed);
     });
+}
+
+// La velocidad elegida se recuerda entre partidas
+function loadBattleSpeed() {
+    try {
+        return localStorage.getItem(SPEED_KEY) === "2" ? 2 : 1;
+    } catch {
+        return 1;
+    }
+}
+
+function toggleBattleSpeed() {
+    battleSpeed = battleSpeed === 2 ? 1 : 2;
+    try {
+        localStorage.setItem(SPEED_KEY, String(battleSpeed));
+    } catch {
+        // Sin almacenamiento solo dura esta sesión
+    }
+    updateSpeedButton();
+}
+
+function updateSpeedButton() {
+    document.querySelector("#battleSpeedBtn").setAttribute("aria-pressed", String(battleSpeed === 2));
 }
 
 function updateBattlePokemonUI(pokemon, side, currentHp = pokemon.currentHp) {
@@ -1444,11 +1472,20 @@ function handleAdventureTeamDefeated() {
     });
 }
 
+// Opciones de tipos distintos; si la región no da para tanto, se aceptan repetidos
+async function getVariedPokemon(count, pool) {
+    try {
+        return await getPokemonFromPools(count, [pool], 1);
+    } catch {
+        return getPokemonFromPools(count, [pool]);
+    }
+}
+
 // offer permite ofrecer Pokémon ya cargados, como el legendario recién vencido
 async function showAdventureReward({ count = 3, message = null, offer = null, onDone }) {
     const region = getRegion(adventure.plan.regionIndex).region;
     const pool = getRewardPool(adventure.plan.regionIndex, selectedPokemon, adventure.stage);
-    rewardOffer = offer ?? await withLoading("Buscando Pokémon...", () => getPokemonFromPools(count, [pool]));
+    rewardOffer = offer ?? await withLoading("Buscando Pokémon...", () => getVariedPokemon(count, pool));
     rewardContinuation = onDone;
     selectedRewardId = null;
     replacedPokemonId = null;
@@ -1515,7 +1552,8 @@ async function handleItemScreenContinue() {
 // ---------- Rutas ----------
 
 function enterRoute() {
-    adventure.route = createRoute(getRouteName(adventure.stage, getLeagueStart(adventure.plan.regionIndex)));
+    const leagueStart = getLeagueStart(adventure.plan.regionIndex);
+    adventure.route = createRoute(getRouteName(adventure.stage, leagueStart), adventure.stage === leagueStart);
     saveCurrentAdventure();
     showRoute();
 }
@@ -1654,19 +1692,11 @@ async function runRouteEvent() {
         return;
     }
     advanceRoute();
-    if (event === "wild") {
-        await showAdventureReward({
-            count: 2,
-            message: `Dos Pokémon salvajes de ${region} se acercan. Si quieres, uno puede unirse a tu equipo.`,
-            onDone: showRoute
-        });
-        return;
-    }
-    const offer = await withLoading("Buscando...", getRandomItemOffer);
-    const item = createBagItem(offer.find(candidate => !candidate.rare) ?? offer[0]);
-    adventure.bag.push(item);
-    saveCurrentAdventure();
-    showRouteMessage("Objeto encontrado", `Has encontrado ${item.name} entre la hierba. Ya está en tu mochila.`);
+    await showAdventureReward({
+        count: 2,
+        message: `Dos Pokémon salvajes de ${region} se acercan. Si quieres, uno puede unirse a tu equipo.`,
+        onDone: showRoute
+    });
 }
 
 // ---------- Tienda ----------
@@ -1687,6 +1717,7 @@ async function openShop() {
 function renderShopScreen() {
     document.querySelector("#shopMoney").textContent = formatMoney(adventure.money);
     renderShop("#shopGrid", shopProducts, adventure.money, buyProduct);
+    renderSellList("#sellGrid", getSellableItems(), getSellPrice, sellItem);
 }
 
 function buyProduct(product) {
@@ -1703,6 +1734,27 @@ function buyProduct(product) {
         const { id, name, description, sprite } = product;
         adventure.bag.push(createBagItem({ id, name, description, sprite, medicine: true }));
     }
+    saveCurrentAdventure();
+    renderShopScreen();
+}
+
+// Las medicinas sacan su descripción de MEDICINES, como en la mochila
+function getSellableItems() {
+    return adventure.bag.map(item => {
+        const medicine = item.medicine ? MEDICINES.find(candidate => candidate.id === item.id) : null;
+        return medicine ? { ...item, description: medicine.description } : item;
+    });
+}
+
+function sellItem(item) {
+    const bagItem = adventure.bag.find(candidate => candidate.uid === item.uid);
+    if (!bagItem) {
+        return;
+    }
+    const price = getSellPrice(bagItem);
+    adventure.bag = adventure.bag.filter(candidate => candidate !== bagItem);
+    adventure.money += price;
+    addStat(adventure.stats, "moneyEarned", price);
     saveCurrentAdventure();
     renderShopScreen();
 }

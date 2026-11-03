@@ -37,6 +37,28 @@ export function renderRouteTeam(selector, team) {
     }).join("");
 }
 
+// Objetos de la mochila que se pueden vender (los equipados no están en la mochila)
+export function renderSellList(selector, items, getPrice, onSell) {
+    const container = document.querySelector(selector);
+    container.innerHTML = "";
+    if (items.length === 0) {
+        container.innerHTML = '<p class="item-offer-empty">No tienes nada que vender. Los objetos equipados no se pueden vender: quítaselos antes desde la mochila.</p>';
+        return;
+    }
+    items.forEach(item => {
+        const card = document.createElement("article");
+        card.classList.add("item-card", "shop-card");
+        card.innerHTML = `
+            <img src="${item.sprite}" alt="">
+            <h3>${item.name}</h3>
+            <p>${item.description}</p>
+            <button type="button" class="secondary-button">Vender · ${formatMoney(getPrice(item))}</button>
+        `;
+        card.querySelector("button").addEventListener("click", () => onSell(item));
+        container.appendChild(card);
+    });
+}
+
 export function renderShop(selector, products, money, onBuy) {
     const container = document.querySelector(selector);
     container.innerHTML = "";

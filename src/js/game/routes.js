@@ -12,7 +12,7 @@ export const NODE_TYPES = {
     },
     event: {
         label: "Evento",
-        description: "Algo inesperado: un Pokémon salvaje, un objeto o un entrenador que te reta.",
+        description: "Algo inesperado: un Pokémon salvaje o un entrenador que te reta.",
         icon: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rare-candy.png"
     },
     shop: {
@@ -69,9 +69,15 @@ function createStep(mustInclude = null) {
     return options.sort(() => Math.random() - 0.5);
 }
 
-// La última parada siempre ofrece un Centro Pokémon para llegar al combate con PS
-export function createRoute(name) {
-    const steps = Array.from({ length: ROUTE_LENGTH }, (_, index) => createStep(index === ROUTE_LENGTH - 1 ? "center" : null));
+// La última parada siempre ofrece un Centro Pokémon para llegar al combate con PS.
+// En la Calle Victoria la parada anterior asegura además una tienda
+export function createRoute(name, isVictoryRoad = false) {
+    const steps = Array.from({ length: ROUTE_LENGTH }, (_, index) => {
+        if (index === ROUTE_LENGTH - 1) {
+            return createStep("center");
+        }
+        return createStep(isVictoryRoad && index === ROUTE_LENGTH - 2 ? "shop" : null);
+    });
     return { name, index: 0, steps };
 }
 
@@ -81,6 +87,15 @@ export function getRouteName(stage, leagueStart) {
 
 export function getItemPrice(item) {
     return item.rare ? RARE_ITEM_PRICE : NORMAL_ITEM_PRICE;
+}
+
+// Se vende por la mitad de lo que cuesta en la tienda
+export function getSellPrice(item) {
+    if (item.medicine) {
+        const medicine = MEDICINES.find(candidate => candidate.id === item.id);
+        return Math.floor((medicine?.price ?? 0) / 2);
+    }
+    return Math.floor(getItemPrice(item) / 2);
 }
 
 // Cada objeto de la mochila lleva su propio uid para poder tener dos iguales
@@ -113,10 +128,10 @@ export function applyMedicine(medicineId, pokemon) {
 // Los PS del legendario se multiplican para que uno solo plante cara a un equipo de seis
 export const LEGENDARY_HP_MULTIPLIER = 3;
 
-// El dinero solo se gana combatiendo: los eventos traen un Pokémon, un objeto o un combate.
+// Los eventos traen un Pokémon salvaje o un combate.
 // Desde la 6.ª medalla, un evento puede ser un encuentro legendario (15 de 115, un 13 %)
 export function pickEvent(allowLegendary = false) {
-    const weights = { wild: 40, trainer: 30, item: 30 };
+    const weights = { wild: 55, trainer: 45 };
     if (allowLegendary) {
         weights.legendary = 15;
     }
