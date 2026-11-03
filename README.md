@@ -8,10 +8,75 @@
     \/_/    \/_____/\/_/\/_/ \/___/  \/___/   \/_/\/_/  \/_/    \/_/  \/___/   \/___/
 ```
 
-# Pokémon Battle Run
+A Pokémon battle run game built with **HTML, CSS, JavaScript and PokéAPI**.
 
-A Pokémon battle run game built with HTML, CSS, JavaScript and PokéAPI.
+Build your team, equip your Pokémon and battle your way through a run of five trainers while trying to keep your team alive.
+
+## Game Modes
+
+### Classic Mode
+
+- Start straight away with 12 random Pokémon (final evolutions only) and choose a team of 6.
+- Region chips (Kanto to Paldea), all on by default: mark the regions you want and press Update to reroll the 12 Pokémon and your rivals from those generations.
+- Equip your Pokémon with items before starting the run.
+- Battle against 5 trainers with teams of 6 Pokémon.
+- Pokémon keep their remaining HP between battles.
+- Switch Pokémon between matchups.
+- Speed up battles with the ×2 button (remembered between visits).
+- Type effectiveness and different item effects affect each battle.
+- Every Pokémon gets +40 HP on top of its base HP, so a neutral hit takes 2 or 3 blows while super effective hits can still knock out in one.
+- Complete the run to receive a final score and rank.
+- Discover your MVP at the end of the run.
+- Download a result card with your final team and score.
+
+### Adventure Mode
+
+- Start in Kanto by choosing one of the region starters in their final evolution (Venusaur, Charizard or Blastoise).
+- Face the real Gym Leaders, Elite Four and Champion of each region with their teams from the original games (Alola uses the kahunas; Galar uses the Champion Cup).
+- Some rivals and champions change their team depending on your starter, like in the games.
+- Kanto Gyms use their original teams. From Johto on, Gym Leaders bring stronger teams: their Pokémon are fully evolved and the team grows from 3 to 6 with Pokémon of their type.
+- Gym Leaders, the Elite Four and Champions hold items (more in later battles) and, when one of their Pokémon faints, send out the one that best counters yours.
+- Your team is healed after every Gym; in the League it is not healed between battles, but you can open your bag to use medicines and change items.
+- Lose against a Gym Leader and you can recruit a new Pokémon before trying again.
+- After each Gym, pick a new Pokémon from the region (up to 6).
+- Stronger Pokémon unlock as you earn badges: from the 3rd badge, strong ones like Gyarados or Snorlax; from the 6th, pseudo-legendaries like Dragonite. Legendary and Mythical Pokémon never appear in normal offers.
+- Before every Gym (and Victory Road before the League) walk a route of 3 stops, choosing each time between a route Trainer, an Event, a Shop or a Pokémon Center. Your HP carries over along the route.
+- Earn money only by battling trainers, and spend it in shops on held items and medicines. Everything you buy goes to your bag, and medicines are used from there on one Pokémon at a time.
+- Random events: a wild Pokémon that wants to join or a trainer who challenges you.
+- Victory Road always offers a Shop and a Pokémon Center before the League.
+- Sell items from your bag in any Shop for half their price.
+- Pokémon offers always show different types.
+- From the 6th badge (and on Victory Road), an event can be a legendary encounter: a Legendary or Mythical Pokémon with triple HP. Beat it and it joins your team; lose and it flees.
+- Beat the Champion to travel to the next region, all the way to Paldea. Only 2 Pokémon of your choice travel with you (Legendaries stay in their region), and your money resets to ₽1000.
+- Statistics for the current region and the whole adventure (battles, knockouts, damage, money, medicines, recruits and a ranking of your Pokémon with an MVP), available from the route and shown as a summary after each League.
+- Progress is saved in the browser so you can continue later.
+
+## Scoring
+
+Your final score is based on:
+
+- Trainers defeated
+- Surviving Pokémon
+- Remaining team HP percentage
+- 1v1 victories
+- Max Revives used
+
+The final result is assigned a rank from **C to S**.
+
+## Credits
+
+Gym Leader, Elite Four and Champion sprites come from [Pokémon Showdown](https://play.pokemonshowdown.com/sprites/trainers/). Pokémon is © Nintendo, Creatures Inc. and GAME FREAK inc.
+
+## Built With
+
+- HTML5
+- CSS3
+- JavaScript
+- ES Modules
+- PokéAPI
 
 ## Status
 
-Under development.
+**Classic Mode and Adventure Mode — Playable**
+
+The project is still under development. More game modes and features are planned.
