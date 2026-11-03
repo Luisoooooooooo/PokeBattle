@@ -358,8 +358,6 @@ function updateBattlePokemonUI(pokemon, side, currentHp = pokemon.currentHp) {
         </span>
     `).join("");
     hpText.textContent = `${currentHp} / ${pokemon.maxHp} PS`;
-    const heldItem = document.querySelector(`#${side}BattleItem`);
-    heldItem.innerHTML = pokemon.item ? `<img src="${pokemon.item.sprite}" alt="">${pokemon.item.name}` : "";
     const hpPercentage = (currentHp / pokemon.maxHp) * 100;
     hpBar.style.width = `${Math.max(0, hpPercentage)}%`;
     hpBar.classList.toggle("warning", hpPercentage > 25 && hpPercentage <= 50);
@@ -756,12 +754,6 @@ function renderBattleTeam() {
                 ${formatTypeName(type)}
             </span>
         `).join("");
-        const itemHtml = pokemon.item ? `
-            <div class="battle-team-item" title="${pokemon.item.name}">
-                <img src="${pokemon.item.sprite}" alt="">
-                <span>${pokemon.item.name}</span>
-            </div>
-        ` : "";
         if (pokemon === activePokemon) {
             card.setAttribute("aria-current", "true");
         }
@@ -776,7 +768,6 @@ function renderBattleTeam() {
                 </div>
                 <div class="battle-team-meta-row">
                     <div class="pokemon-types">${typesHtml}</div>
-                    ${itemHtml}
                 </div>
                 <div class="battle-team-hp-bar">
                     <span class="${hpClass}" style="width: ${hpPercentage}%"></span>
