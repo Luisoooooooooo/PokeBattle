@@ -1,3 +1,6 @@
+// Se suma a los PS base de todos los Pokémon para que un golpe neutro no debilite de una vez
+export const HP_BONUS = 40;
+
 export function createPokemon(data) {
     const hpStat = data.stats.find(stat => stat.stat.name === "hp");
     const attackStat = data.stats.find(stat => stat.stat.name === "attack");
@@ -6,7 +9,7 @@ export function createPokemon(data) {
     const specialDefenseStat = data.stats.find(stat => stat.stat.name === "special-defense");
     const speedStat = data.stats.find(stat => stat.stat.name === "speed");
 
-    const maxHp = hpStat.base_stat;
+    const maxHp = hpStat.base_stat + HP_BONUS;
 
     return {
         id: data.id,

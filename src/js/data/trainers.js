@@ -1,84 +1,84 @@
 const TRAINER_CLASSES = [
     {
-        className: "ARLEQUÍN",
+        className: "Arlequín",
         gender: "male",
         sprite: "./src/assets/trainers/Spr_B2W2_Harlequin.png"
     },
     {
-        className: "MONTAÑERO",
+        className: "Montañero",
         gender: "male",
         sprite: "./src/assets/trainers/Spr_B2W2_Hiker.png"
     },
     {
-        className: "CONSERJE",
+        className: "Conserje",
         gender: "male",
         sprite: "./src/assets/trainers/Spr_B2W2_Janitor.png"
     },
     {
-        className: "DAMA",
+        className: "Dama",
         gender: "female",
         sprite: "./src/assets/trainers/Spr_B2W2_Lady.png"
     },
     {
-        className: "CHICA",
+        className: "Chica",
         gender: "female",
         sprite: "./src/assets/trainers/Spr_B2W2_Lass.png"
     },
     {
-        className: "DONCELLA",
+        className: "Doncella",
         gender: "female",
         sprite: "./src/assets/trainers/Spr_B2W2_Maid.png"
     },
     {
-        className: "MÚSICO",
+        className: "Músico",
         gender: "male",
         sprite: "./src/assets/trainers/Spr_B2W2_Musician.png"
     },
     {
-        className: "ENFERMERA",
+        className: "Enfermera",
         gender: "female",
         sprite: "./src/assets/trainers/Spr_B2W2_Nurse.png"
     },
     {
-        className: "CUIDADORA",
+        className: "Cuidadora",
         gender: "female",
         sprite: "./src/assets/trainers/Spr_B2W2_Nursery_Aide.png"
     },
     {
-        className: "DAMA PARASOL",
+        className: "Dama Parasol",
         gender: "female",
         sprite: "./src/assets/trainers/Spr_B2W2_Parasol_Lady.png"
     }
 ];
 
 const MALE_NAMES = [
-    "MANUEL",
-    "JAVIER",
-    "CARLOS",
-    "RAÚL",
-    "SERGIO",
-    "DANIEL",
-    "MARCOS",
-    "ÁLVARO",
-    "DIEGO",
-    "PABLO",
-    "HUGO",
-    "MARIO"
+    "Manuel",
+    "Javier",
+    "Carlos",
+    "Raúl",
+    "Sergio",
+    "Daniel",
+    "Marcos",
+    "Álvaro",
+    "Diego",
+    "Pablo",
+    "Hugo",
+    "Mario"
 ];
 
 const FEMALE_NAMES = [
-    "LAURA",
-    "MARTA",
-    "LUCÍA",
-    "PAULA",
-    "ELENA",
-    "SARA",
-    "ANDREA",
-    "CLAUDIA",
-    "IRENE",
-    "NATALIA",
-    "ALBA",
-    "SOFÍA"
+    "Laura",
+    "Marta",
+    "Lucía",
+    "Paula",
+    "Elena",
+    "Sara",
+    "Andrea",
+    "Claudia",
+    "Irene",
+    "Natalia",
+    "Alba",
+    "Sofía"
 ];
 
 function shuffle(array) {
@@ -107,6 +107,20 @@ export function getRandomTrainers(amount = 5) {
             className: trainerClass.className,
             trainerName,
             name: `${trainerClass.className} ${trainerName}`,
+            sprite: trainerClass.sprite
+        };
+    });
+}
+
+// Para el modo aventura: más entrenadores que clases, así que los sprites se repiten
+export function getRandomTrainerIdentities(amount) {
+    const shuffledClasses = shuffle(TRAINER_CLASSES);
+    const usedNames = [];
+    return Array.from({ length: amount }, (_, index) => {
+        const trainerClass = shuffledClasses[index % shuffledClasses.length];
+        return {
+            trainerName: getRandomName(trainerClass.gender, usedNames),
+            gender: trainerClass.gender,
             sprite: trainerClass.sprite
         };
     });
